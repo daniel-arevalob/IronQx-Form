@@ -3043,7 +3043,9 @@ function recolectarDatos() {
     const labelTxt = cb.closest(".chk")?.querySelector(".chk-txt")?.textContent?.trim();
     if (!labelTxt) return;
     const seccion  = cb.closest(".sub-seccion, .subsec");
-    const titulo   = seccion?.querySelector(".sub-sec-titulo, .subsec-titulo")?.textContent?.trim() || "General";
+    const titulo   = seccion?.querySelector(".sub-sec-titulo, .subsec-titulo")?.textContent?.trim()
+                  || cb.closest(".campo")?.querySelector(".lbl")?.textContent?.trim().replace(/\s*\*+\s*$/, "")
+                  || "General";
     if (!checks[titulo]) checks[titulo] = [];
     checks[titulo].push(labelTxt);
   });
