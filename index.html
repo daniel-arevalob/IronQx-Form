@@ -52,7 +52,15 @@
   .lbl { color: #444 !important; }
   .logo-img { width: 220px !important; }
   a { color: #111 !important; }
-  #progreso-bar, button, #tab-nav-wrap, .tab-footer-nav, .modal-lista, .btn-lista { display: none !important; }
+  #progreso-bar, button, #tab-nav-wrap, .tab-footer-nav, .modal-lista, .btn-lista,
+  .sec-nav, .pb-saved, .field-error { display: none !important; }
+  .imc-seg, .resumen-chip, .esc-feedback, .meta-card, .resumen-chip .rc-val {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .imc-bar { border: 1px solid #ccc; }
+  .resumen-chip, .meta-card { background: #f8f8f8 !important; border-color: #ccc !important; }
+  .resumen-chip .rc-val, .meta-card .mc-val { color: #a8832a !important; }
+  .esc-feedback { background: #f8f8f8 !important; border-color: #ccc !important; }
   .tab-panel { display: block !important; animation: none !important; opacity: 1 !important; transform: none !important; }
   .warning-box { background: #fff3cd !important; border-color: #ffc107 !important; color: #856404 !important; }
 }
@@ -311,6 +319,11 @@ hr.div { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
 .escala-item input { display: none; }
 .esc-n { display: block; font-size: 22px; font-weight: 900; color: var(--gold); line-height: 1; }
 .esc-lbl { font-size: 10px; color: var(--muted); margin-top: 4px; display: block; }
+.esc-feedback {
+  margin-top: 9px; font-size: 12.5px; color: var(--muted);
+  padding: 6px 12px; background: var(--card2); border: 1px solid var(--line);
+  border-radius: 8px; display: inline-block; animation: fadeInUp .2s ease;
+}
 
 /* ── CAMPOS ──────────────────────────────────── */
 .fila-campos {
@@ -331,11 +344,74 @@ hr.div { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
   background: var(--card2); border: 1px solid var(--line); border-radius: 8px;
   padding: 10px 14px; color: var(--txt);
   font-family: inherit; font-size: 13px; width: 100%;
-  outline: none; transition: border-color .15s;
+  outline: none; transition: border-color .15s, box-shadow .15s, background .15s;
   -webkit-appearance: none; appearance: none;
 }
-.inp:focus, select.inp:focus { border-color: var(--gold); }
+.inp:hover, select.inp:hover { border-color: var(--gold-brd); }
+.inp:focus, select.inp:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-bg);
+  background: #1b1f27;
+}
 .inp::placeholder { color: var(--muted); opacity: 0.55; }
+/* Barra visual de IMC */
+.imc-bar-wrap { margin-top: 9px; }
+.imc-bar-track { position: relative; }
+.imc-bar { display: flex; height: 8px; border-radius: 6px; overflow: hidden; }
+.imc-seg { display: block; }
+.imc-marker {
+  position: absolute; top: -3px; left: 50%; width: 3px; height: 14px;
+  background: #fff; border-radius: 2px; box-shadow: 0 0 0 2px rgba(0,0,0,0.55);
+  transform: translateX(-50%); transition: left .3s ease;
+}
+.imc-bar-ticks { display: flex; justify-content: space-between; margin-top: 4px; font-size: 9px; color: var(--muted); }
+/* Validación inline */
+.inp.invalid { border-color: var(--red) !important; box-shadow: 0 0 0 3px var(--red-bg) !important; }
+.field-error { margin-top: 5px; font-size: 11px; color: var(--red); font-weight: 600; display: flex; align-items: center; gap: 5px; animation: fadeInUp .18s ease; }
+/* Indicador de guardado */
+.pb-saved { font-size: 10.5px; font-weight: 700; color: var(--green); letter-spacing: 0.3px; white-space: nowrap; opacity: 0; transition: opacity .3s ease; flex-shrink: 0; }
+.pb-saved.show { opacity: 1; }
+/* Resumen pre-envío */
+.resumen-envio { margin: 4px 0 18px; }
+.resumen-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+@media (max-width: 560px) { .resumen-grid { grid-template-columns: repeat(2, 1fr); } }
+.resumen-chip { background: var(--card2); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; }
+.resumen-chip .rc-lbl { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.resumen-chip .rc-val { font-size: 14px; font-weight: 800; color: var(--gold); margin-top: 3px; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.resumen-chip.miss { border-color: var(--red-bg); }
+.resumen-chip.miss .rc-val { color: var(--red); font-size: 12px; }
+/* Scroll offset bajo barras fijas (--fixed-h lo fija el JS) */
+:root { --fixed-h: 130px; }
+.seccion { scroll-margin-top: calc(var(--fixed-h) + 74px); }
+/* Mini-índice de secciones por panel (1 fila, scroll horizontal) */
+.sec-nav {
+  position: sticky; top: var(--fixed-h); z-index: 40;
+  display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  padding: 9px 10px; margin-bottom: 14px;
+  background: rgba(13,14,16,0.92); backdrop-filter: blur(8px);
+  border: 1px solid var(--line); border-radius: 10px;
+}
+.sec-nav::-webkit-scrollbar { display: none; }
+.sec-nav-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: 7px; cursor: pointer;
+  background: var(--card2); border: 1px solid var(--line);
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  transition: color .15s, border-color .15s, background .15s; white-space: nowrap;
+}
+.sec-nav-chip:hover { color: var(--txt); border-color: var(--gold-brd); }
+.sec-nav-chip b { color: var(--gold); font-weight: 900; font-size: 12px; }
+.sec-nav-chip.active { color: var(--txt); border-color: var(--gold); background: var(--gold-bg); }
+@media (max-width: 480px) { .sec-nav-chip .snc-txt { display: none; } }
+/* Micro-animación al marcar check/radio/escala */
+@keyframes chkPop { 0% { transform: scale(.6); } 55% { transform: scale(1.18); } 100% { transform: scale(1); } }
+.chk input[type="checkbox"]:checked, .rdo input[type="radio"]:checked { animation: chkPop .22s ease; }
+.escala-item.on { animation: chkPop .22s ease; }
+/* Números tabulares (alineación en campos numéricos y biomarcadores) */
+input[type="number"].inp { font-variant-numeric: tabular-nums; }
+/* Masa magra bajo % grasa */
+.lbm-hint { margin-top: 6px; font-size: 11px; color: var(--green); font-weight: 600; }
 select.inp {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%237a7f8e'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 14px center; padding-right: 34px;
@@ -420,19 +496,22 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
 /* ── METABOLICA CARDS ─────────────────────────────────── */
 .meta-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(160px, 100%), 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-bottom: 16px;
 }
+@media (max-width: 560px) { .meta-grid { grid-template-columns: repeat(2, 1fr); } }
 .meta-card {
   background: var(--card2);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 14px 16px;
+  padding: 16px 14px;
   text-align: center;
+  transition: transform .15s, border-color .15s, box-shadow .15s;
 }
-.meta-card.highlight { border-color: var(--gold-brd); background: var(--gold-bg); }
-.meta-card .mc-val { font-size: 26px; font-weight: 900; color: var(--gold); line-height: 1; }
+.meta-card:hover { transform: translateY(-2px); border-color: var(--gold-brd); box-shadow: 0 6px 22px rgba(0,0,0,0.35); }
+.meta-card.highlight { border-color: var(--gold-brd); background: var(--gold-bg); box-shadow: 0 0 28px rgba(212,168,67,0.06); }
+.meta-card .mc-val { font-size: 27px; font-weight: 900; color: var(--gold); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
 .meta-card .mc-unit { font-size: 10px; color: var(--muted); margin-top: 2px; }
 .meta-card .mc-lbl { font-size: 11px; color: var(--txt); margin-top: 6px; font-weight: 600; }
 .meta-bar-wrap { margin: 4px 0 14px; }
@@ -851,10 +930,15 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
 </head>
 <body>
 
+<!-- Honeypot anti-spam: oculto a humanos, los bots lo rellenan. No tocar. -->
+<input type="text" id="hp-website" name="website" tabindex="-1" autocomplete="off"
+  aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none">
+
 <div id="progreso-bar">
   <span class="pb-logo"><span style="color:#c8cdd8;">IRON</span><span style="color:#d4a843;">Qx</span></span>
   <div class="pb-track"><div class="pb-fill" id="pb-fill"></div></div>
   <span class="pb-pct" id="pb-pct">0%</span>
+  <span class="pb-saved" id="pb-saved">Guardado ✓</span>
   <button id="btn-pdf" onclick="generarPDF()" class="pb-print" style="background:linear-gradient(135deg,rgba(212,168,67,0.22),rgba(184,122,16,0.18));border:1px solid var(--gold-brd);color:var(--gold);font-size:11px;font-weight:800;letter-spacing:0.5px;padding:5px 13px;border-radius:7px;cursor:pointer;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:6px;transition:background .15s,border-color .15s;">
     <span style="font-size:1.1em;">📄</span> Descargar PDF
   </button>
@@ -958,15 +1042,15 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
       <div class="fila-campos" style="grid-template-columns: repeat(3, minmax(0,1fr));">
         <div class="campo span2">
           <label class="lbl">Nombre completo *</label>
-          <input type="text" class="inp" placeholder="Ej: María González López" required onchange="updateProgress()">
+          <input type="text" id="c-nombre" class="inp" placeholder="Ej: María González López" required onchange="updateProgress()">
         </div>
         <div class="campo">
           <label class="lbl">Teléfono *</label>
-          <input type="tel" class="inp" placeholder="+593 98 765 4321" required onchange="updateProgress()">
+          <input type="tel" id="c-telefono" class="inp" placeholder="+593 98 765 4321" required onchange="updateProgress()">
         </div>
         <div class="campo span2">
           <label class="lbl">Correo electrónico *</label>
-          <input type="email" class="inp" placeholder="ejemplo@correo.com" required onchange="updateProgress()">
+          <input type="email" id="c-email" class="inp" placeholder="ejemplo@correo.com" required onchange="updateProgress()">
         </div>
         <div class="campo">
           <label class="lbl">Ciudad</label>
@@ -1018,6 +1102,18 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
         <div class="campo">
           <label class="lbl">IMC Calculado</label>
           <div id="imc-display" class="imc-resultado">--</div>
+          <div id="imc-bar-wrap" class="imc-bar-wrap" style="display:none">
+            <div class="imc-bar-track">
+              <div class="imc-bar">
+                <span class="imc-seg" style="background:#4490ee;flex:3.5"></span>
+                <span class="imc-seg" style="background:#35b06a;flex:6.5"></span>
+                <span class="imc-seg" style="background:#d4a843;flex:5"></span>
+                <span class="imc-seg" style="background:#d94f4f;flex:5"></span>
+              </div>
+              <span id="imc-marker" class="imc-marker"></span>
+            </div>
+            <div class="imc-bar-ticks"><span>15</span><span>18.5</span><span>25</span><span>30</span><span>35+</span></div>
+          </div>
         </div>
       </div>
 
@@ -1036,7 +1132,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
       <div class="fila-campos" style="grid-template-columns: repeat(4, minmax(0,1fr));">
         <div class="campo">
           <label class="lbl">% Grasa corporal</label>
-          <input type="number" class="inp" id="grasa-corp" placeholder="" step="0.1" min="3" max="60" onchange="updateProgress()">
+          <input type="number" class="inp" id="grasa-corp" placeholder="" step="0.1" min="3" max="60" onchange="calcularGET(); updateProgress()">
         </div>
         <div class="campo">
           <label class="lbl">Cintura (cm)</label>
@@ -1195,6 +1291,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
       <div class="subsec">
         <div class="subsec-titulo">Medicamentos actuales</div>
         <div class="campo span4">
+          <label class="lbl">Lista de medicamentos / suplementos y dosis</label>
           <textarea class="inp" placeholder="Liste todos los medicamentos que toma actualmente, incluyendo suplementos y dosis aproximadas..." onchange="updateProgress()"></textarea>
         </div>
       </div>
@@ -2108,11 +2205,11 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
       <div class="subsec">
         <div class="subsec-titulo">Objetivo principal *</div>
         <div class="radio-fila">
-          <label class="rdo"><input type="radio" name="objetivo" value="perdida_grasa" required onchange="updateProgress()"><span>Pérdida de grasa corporal</span></label>
-          <label class="rdo"><input type="radio" name="objetivo" value="ganancia_muscular" onchange="updateProgress()"><span>Ganancia de masa muscular</span></label>
-          <label class="rdo"><input type="radio" name="objetivo" value="recomposicion" onchange="updateProgress()"><span>Recomposición corporal</span></label>
-          <label class="rdo"><input type="radio" name="objetivo" value="mantenimiento" onchange="updateProgress()"><span>Mantenimiento/Performance</span></label>
-          <label class="rdo"><input type="radio" name="objetivo" value="salud" onchange="updateProgress()"><span>Mejora de salud general</span></label>
+          <label class="rdo"><input type="radio" name="objetivo" value="perdida_grasa" required onchange="updateProgress(); calcularGET()"><span>Pérdida de grasa corporal</span></label>
+          <label class="rdo"><input type="radio" name="objetivo" value="ganancia_muscular" onchange="updateProgress(); calcularGET()"><span>Ganancia de masa muscular</span></label>
+          <label class="rdo"><input type="radio" name="objetivo" value="recomposicion" onchange="updateProgress(); calcularGET()"><span>Recomposición corporal</span></label>
+          <label class="rdo"><input type="radio" name="objetivo" value="mantenimiento" onchange="updateProgress(); calcularGET()"><span>Mantenimiento/Performance</span></label>
+          <label class="rdo"><input type="radio" name="objetivo" value="salud" onchange="updateProgress(); calcularGET()"><span>Mejora de salud general</span></label>
         </div>
       </div>
 
@@ -2441,8 +2538,13 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
     </div>
     <div class="sec-body">
       <div class="info">
-        <b>📋 Resumen del progreso:</b> Ha completado el <span id="resumen-progreso">0%</span> del formulario. 
+        <b>📋 Resumen del progreso:</b> Ha completado el <span id="resumen-progreso">0%</span> del formulario.
         Revise que todos los campos obligatorios (*) estén llenos antes de enviar.
+      </div>
+
+      <div class="subsec">
+        <div class="subsec-titulo">Tu información clave</div>
+        <div id="resumen-envio" class="resumen-envio"></div>
       </div>
 
       <div class="subsec">
@@ -2509,9 +2611,9 @@ function comenzar() {
   if (portada) portada.style.display = 'none';
   if (portadaFooter) portadaFooter.style.display = 'none';
   
-  // Show the tab navigation and parte-labels
-  document.querySelectorAll('.parte-label').forEach(el => el.style.display = '');
+  // Show the tab navigation; solo la etiqueta "Parte" del panel activo
   document.getElementById('tab-nav-wrap').style.display = '';
+  updateParteLabels();
   
   // Restore active panel display
   const activePanel = document.getElementById(`panel-${currentTab}`);
@@ -2519,8 +2621,8 @@ function comenzar() {
   
   portadaVisible = false;
   
-  // Update ink position after becoming visible
-  setTimeout(() => updateTabInk(), 50);
+  // Update ink + altura de barras fijas tras hacerse visible
+  setTimeout(() => { updateTabInk(); setFixedHeight(); }, 50);
   
   // Scroll al inicio del primer panel (debajo de progreso-bar + tab-nav)
   setTimeout(() => {
@@ -2537,6 +2639,9 @@ function comenzar() {
 }
 
 // Inicialización
+// Marca de tiempo de carga (time-trap anti-spam: bots envían en milisegundos)
+window.__formLoadedAt = Date.now();
+
 document.addEventListener('DOMContentLoaded', function() {
   // Establecer fecha actual dinámica
   const hoy = new Date();
@@ -2551,8 +2656,15 @@ document.addEventListener('DOMContentLoaded', function() {
   
   document.getElementById('fecha-firma').value = hoy.toISOString().split('T')[0];
   
+  // Asociar cada label .lbl con su input (foco al clic + accesibilidad)
+  wireLabels();
+  // Mini-índice de secciones en paneles con 2+ secciones
+  buildSectionNav();
+
   // Inicializar tabs
   updateTabInk();
+  // Restaurar borrador ANTES del primer updateProgress (que sobrescribiría el guardado)
+  restaurarBorrador();
   updateProgress();
   
   // Ocultar form hasta que el usuario haga clic en Comenzar
@@ -2566,6 +2678,14 @@ document.addEventListener('DOMContentLoaded', function() {
       updateCustomInputs();
       updateProgress();
     });
+  });
+
+  // Validación inline: al salir de un campo .inp; limpia mientras corrige
+  document.addEventListener('focusout', function(e) {
+    if (e.target.classList && e.target.classList.contains('inp')) validarCampo(e.target);
+  });
+  document.addEventListener('input', function(e) {
+    if (e.target.classList && e.target.classList.contains('invalid')) validarCampo(e.target);
   });
 
   // Mostrar/ocultar biomarcadores por sexo
@@ -2607,7 +2727,157 @@ function switchTab(index) {
   document.querySelectorAll('.tab-btn')[currentTab].classList.add('active');
   
   updateTabInk();
+  updateParteLabels();
   updateProgress();
+  if (currentTab === 5) renderResumenEnvio();
+}
+
+// Renderiza la tarjeta de resumen clave en el panel de confirmación
+function renderResumenEnvio() {
+  const cont = document.getElementById("resumen-envio");
+  if (!cont) return;
+
+  const OBJ = {
+    perdida_grasa: "Pérdida de grasa", ganancia_muscular: "Ganancia muscular",
+    recomposicion: "Recomposición", mantenimiento: "Mantenimiento", salud: "Salud general",
+  };
+  const val = id => (document.getElementById(id)?.value || "").trim();
+  const txt = id => (document.getElementById(id)?.textContent || "").trim();
+  const objetivoRaw = document.querySelector('input[name="objetivo"]:checked')?.value;
+  const dias = document.querySelector('input[name="dias-entreno"]:checked')?.value;
+  const imc = txt("imc-display");
+  const get = txt("get-val");
+  const prot = txt("proteina-val");
+
+  const chips = [
+    { lbl: "Nombre",    value: val("c-nombre"),                crit: true },
+    { lbl: "Correo",    value: val("c-email"),                 crit: true },
+    { lbl: "Objetivo",  value: OBJ[objetivoRaw] || "",         crit: true },
+    { lbl: "IMC",       value: imc && imc !== "--" ? imc : "" },
+    { lbl: "GET",       value: get && get !== "--" ? get + " kcal" : "" },
+    { lbl: "Proteína",  value: prot && prot !== "--" ? prot + " g" : "" },
+    { lbl: "Entreno",   value: dias ? dias + " días/sem" : "" },
+    { lbl: "Peso",      value: val("peso") ? val("peso") + " kg" : "" },
+  ];
+
+  const esc = s => String(s).replace(/[&<>"']/g, m =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+
+  cont.innerHTML = `<div class="resumen-grid">` + chips.map(ch => {
+    const falta = !ch.value;
+    if (falta && !ch.crit) return ""; // opcionales vacíos no se muestran
+    return `<div class="resumen-chip${falta ? " miss" : ""}">
+      <div class="rc-lbl">${ch.lbl}</div>
+      <div class="rc-val">${falta ? "⚠ Falta" : esc(ch.value)}</div>
+    </div>`;
+  }).join("") + `</div>`;
+}
+
+// Validación inline de un campo (al perder foco). Marca borde rojo + mensaje.
+function validarCampo(input) {
+  if (!input || input.disabled || input.readOnly || input.type === "checkbox" || input.type === "radio") return true;
+  let err = input.nextElementSibling;
+  if (!err || !err.classList || !err.classList.contains("field-error")) err = null;
+
+  const setErr = msg => {
+    input.classList.add("invalid");
+    if (!err) {
+      err = document.createElement("div");
+      err.className = "field-error";
+      input.insertAdjacentElement("afterend", err);
+    }
+    err.textContent = "⚠ " + msg;
+  };
+  const limpiar = () => { input.classList.remove("invalid"); if (err) err.remove(); };
+
+  const v = (input.value || "").trim();
+  if (input.required && !v)              { setErr("Campo obligatorio"); return false; }
+  if (input.type === "email" && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) { setErr("Correo electrónico inválido"); return false; }
+  if (input.type === "tel"   && v && v.replace(/\D/g, "").length < 7)      { setErr("Teléfono incompleto"); return false; }
+  limpiar();
+  return true;
+}
+
+// Valida todos los campos .inp requeridos. Devuelve el primer inválido (o null).
+function validarTodoRequerido() {
+  const reqs = document.querySelectorAll(
+    'input.inp[required], select.inp[required], textarea.inp[required]'
+  );
+  let primero = null;
+  reqs.forEach(inp => {
+    if (!validarCampo(inp) && !primero) primero = inp;
+  });
+  return primero;
+}
+
+// Fija --fixed-h = alto de las barras fijas (progreso + tabs) para offsets de scroll/sticky
+function setFixedHeight() {
+  const pb = document.getElementById('progreso-bar');
+  const tn = document.getElementById('tab-nav-wrap');
+  const h = (pb ? pb.offsetHeight : 0) +
+            (tn && tn.style.display !== 'none' ? tn.offsetHeight : 0);
+  if (h > 0) document.documentElement.style.setProperty('--fixed-h', h + 'px');
+}
+
+// Construye un mini-índice sticky en cada panel con 2+ secciones
+function buildSectionNav() {
+  document.querySelectorAll('.tab-panel').forEach(panel => {
+    const secs = panel.querySelectorAll(':scope > .seccion');
+    if (secs.length < 2 || panel.querySelector(':scope > .sec-nav')) return;
+
+    const nav = document.createElement('div');
+    nav.className = 'sec-nav';
+    const mapa = new Map(); // sección → chip
+    secs.forEach((sec, i) => {
+      if (!sec.id) sec.id = `${panel.id}-sec-${i}`;
+      const num = sec.querySelector('.sec-num')?.textContent?.trim() || (i + 1);
+      const titulo = sec.querySelector('.sec-titulo')?.textContent?.trim() || '';
+      const chip = document.createElement('span');
+      chip.className = 'sec-nav-chip';
+      chip.innerHTML = `<b>${num}</b><span class="snc-txt"></span>`;
+      chip.querySelector('.snc-txt').textContent = titulo;
+      chip.addEventListener('click', () => {
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      nav.appendChild(chip);
+      mapa.set(sec, chip);
+    });
+    panel.insertBefore(nav, panel.firstChild);
+
+    // Resalta el chip de la sección visible al hacer scroll
+    if ('IntersectionObserver' in window) {
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            nav.querySelectorAll('.sec-nav-chip').forEach(c => c.classList.remove('active'));
+            mapa.get(e.target)?.classList.add('active');
+          }
+        });
+      }, { rootMargin: `-${parseInt(getComputedStyle(document.documentElement).getPropertyValue('--fixed-h')) + 80}px 0px -55% 0px`, threshold: 0 });
+      secs.forEach(sec => obs.observe(sec));
+    }
+  });
+}
+
+// Asocia cada <label class="lbl"> a su input/select/textarea hermano vía for/id.
+// Genera id donde falte. Mejora foco-al-clic y accesibilidad sin tocar el HTML.
+function wireLabels() {
+  let n = 0;
+  document.querySelectorAll('.campo').forEach(campo => {
+    const lbl = campo.querySelector('.lbl');
+    const input = campo.querySelector('input, select, textarea');
+    if (!lbl || !input) return;
+    if (!input.id) input.id = `f-auto-${++n}`;
+    lbl.setAttribute('for', input.id);
+  });
+}
+
+// Muestra solo la etiqueta "Parte" del panel activo (evita que se apilen todas)
+function updateParteLabels() {
+  document.querySelectorAll('.parte-label').forEach(el => el.style.display = 'none');
+  const panel = document.getElementById(`panel-${currentTab}`);
+  const prev = panel?.previousElementSibling;
+  if (prev && prev.classList.contains('parte-label')) prev.style.display = '';
 }
 
 function nextTab() {
@@ -2692,6 +2962,15 @@ function calcularIMC() {
     display.style.color = color;
     display.style.borderColor = color;
     display.style.background = color + '15';
+
+    // Barra visual: posicionar marcador en escala 15–35
+    const barWrap = document.getElementById('imc-bar-wrap');
+    const marker = document.getElementById('imc-marker');
+    if (barWrap && marker) {
+      const pos = Math.max(0, Math.min(100, ((imc - 15) / (35 - 15)) * 100));
+      marker.style.left = pos + '%';
+      barWrap.style.display = 'block';
+    }
     
     // Calcular TMB y GET automáticamente
     calcularTMB(peso, estatura, sexo, edad);
@@ -2749,17 +3028,50 @@ function calcularGET(tmb = null) {
     const get = tmb * parseFloat(actividad.value);
     document.getElementById('get-val').textContent = Math.round(get);
     
-    // Proteína recomendada según objetivo y peso
-    const peso = parseFloat(document.getElementById('peso')?.value) || 70;
+    // Proteína recomendada.
+    // Si hay % de grasa → se calcula sobre MASA MAGRA (clínicamente más preciso:
+    // no se dosifica proteína sobre la masa grasa). Si no, sobre peso total.
+    const peso     = parseFloat(document.getElementById('peso')?.value) || 70;
+    const grasaPct = parseFloat(document.getElementById('grasa-corp')?.value);
     const objetivo = document.querySelector('input[name="objetivo"]:checked')?.value;
-    
-    let factorProteina = 1.8; // Default
-    if (objetivo === 'perdida_grasa') factorProteina = 2.2;
-    else if (objetivo === 'ganancia_muscular') factorProteina = 2.0;
-    else if (objetivo === 'recomposicion') factorProteina = 2.0;
-    
-    const proteina = Math.round(peso * factorProteina);
-    document.getElementById('proteina-val').textContent = proteina;
+
+    const usaLBM = grasaPct && grasaPct > 0 && grasaPct < 60;
+    let base, f;
+    if (usaLBM) {
+      // Base = masa magra (kg). Factores por g/kg de masa magra.
+      base = peso * (1 - grasaPct / 100);
+      f = 2.2; // mantenimiento / salud por defecto
+      if (objetivo === 'perdida_grasa')          f = 2.6; // preservar músculo en déficit
+      else if (objetivo === 'ganancia_muscular') f = 2.4;
+      else if (objetivo === 'recomposicion')     f = 2.5;
+    } else {
+      // Base = peso corporal total. Factores por g/kg de peso.
+      base = peso;
+      f = 1.8; // mantenimiento / salud por defecto
+      if (objetivo === 'perdida_grasa')          f = 2.4;
+      else if (objetivo === 'ganancia_muscular') f = 2.2;
+      else if (objetivo === 'recomposicion')     f = 2.2;
+    }
+    // Rango: el factor objetivo como piso, +0.3 g/kg como techo
+    const protLow  = Math.round(base * f);
+    const protHigh = Math.round(base * (f + 0.3));
+    document.getElementById('proteina-val').textContent = `${protLow}–${protHigh}`;
+
+    // Hint de masa magra bajo el campo de % grasa
+    const grasaInput = document.getElementById('grasa-corp');
+    if (grasaInput) {
+      let hint = grasaInput.parentElement.querySelector('.lbm-hint');
+      if (usaLBM) {
+        if (!hint) {
+          hint = document.createElement('div');
+          hint.className = 'lbm-hint';
+          grasaInput.insertAdjacentElement('afterend', hint);
+        }
+        hint.textContent = `Masa magra ≈ ${base.toFixed(1)} kg`;
+      } else if (hint) {
+        hint.remove();
+      }
+    }
     
     // Agua recomendada (35ml/kg + ajuste por actividad)
     const factorAgua = parseFloat(actividad.value) > 1.55 ? 40 : 35;
@@ -2795,6 +3107,43 @@ function updateCustomInputs() {
     } else {
       item.classList.remove('on');
     }
+  });
+
+  updateEscalaFeedback();
+}
+
+// Muestra "N/10 · descriptor" bajo cada escala seleccionada
+function updateEscalaFeedback() {
+  document.querySelectorAll('.escala').forEach(esc => {
+    const checked = esc.querySelector('input:checked');
+    let fb = esc.parentElement.querySelector('.esc-feedback');
+    if (!checked) { if (fb) fb.style.display = 'none'; return; }
+
+    const items = Array.from(esc.querySelectorAll('.escala-item'));
+    const idx = items.findIndex(it => it.querySelector('input') === checked);
+
+    // Descriptor: el del ítem elegido o el más cercano no vacío
+    let desc = '';
+    for (let d = 0; d < items.length && !desc; d++) {
+      const ta = items[idx - d]?.querySelector('.esc-lbl')?.textContent?.trim();
+      const tb = items[idx + d]?.querySelector('.esc-lbl')?.textContent?.trim();
+      desc = ta || tb || '';
+    }
+
+    const n = parseInt(checked.value);
+    // En estrés la escala es inversa: bajo = bueno (verde), alto = malo (rojo)
+    const inversa = checked.name === 'estres';
+    const bajo = inversa ? 'var(--green)' : 'var(--red)';
+    const alto = inversa ? 'var(--red)' : 'var(--green)';
+    const color = n <= 3 ? bajo : n <= 6 ? 'var(--gold)' : alto;
+    if (!fb) {
+      fb = document.createElement('div');
+      fb.className = 'esc-feedback';
+      esc.insertAdjacentElement('afterend', fb);
+    }
+    fb.style.display = 'inline-block';
+    fb.innerHTML = `<span style="color:${color};font-weight:800">${n}/10</span>` +
+      (desc ? ` · <span style="color:var(--txt)">${desc}</span>` : '');
   });
 }
 
@@ -2871,6 +3220,9 @@ function updateProgress() {
       progress.style.color = 'var(--muted)';
     }
   });
+
+  // Persistir borrador en cada cambio
+  guardarBorrador();
 }
 
 // Generar Lista de Compras
@@ -2992,6 +3344,69 @@ function generarPDF() {
 
 const WORKER_URL = "https://ironqx-form.daniel-arevalo2709.workers.dev";
 
+// ─── Autoguardado local (anti-pérdida de datos en form largo) ───────────────
+const LS_KEY = "ironqx-form-v1";
+
+// Controles persistibles en orden de documento (excluye botones y campos calculados readonly)
+function camposPersistibles() {
+  return Array.from(document.querySelectorAll("input, select, textarea"))
+    .filter(el => !el.readOnly && el.type !== "button" && el.type !== "submit" && el.type !== "file");
+}
+
+function guardarBorrador() {
+  try {
+    const data = camposPersistibles().map(el =>
+      (el.type === "checkbox" || el.type === "radio") ? (el.checked ? 1 : 0) : el.value
+    );
+    localStorage.setItem(LS_KEY, JSON.stringify({ v: 1, ts: Date.now(), data }));
+    flashGuardado();
+  } catch (_) { /* storage lleno o bloqueado: ignorar */ }
+}
+
+// Muestra "Guardado ✓" brevemente tras cada autoguardado
+let _savedTimer = null;
+function flashGuardado() {
+  const el = document.getElementById("pb-saved");
+  if (!el) return;
+  el.classList.add("show");
+  clearTimeout(_savedTimer);
+  _savedTimer = setTimeout(() => el.classList.remove("show"), 1600);
+}
+
+function restaurarBorrador() {
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch (_) { return; }
+  if (!saved || !Array.isArray(saved.data)) return;
+
+  const els = camposPersistibles();
+  if (saved.data.length !== els.length) return; // estructura cambió: descartar para no corromper
+
+  let huboDatos = false;
+  els.forEach((el, i) => {
+    const val = saved.data[i];
+    if (el.type === "checkbox" || el.type === "radio") {
+      el.checked = !!val;
+      if (val) huboDatos = true;
+    } else if (val !== "") {
+      el.value = val;
+      huboDatos = true;
+    }
+  });
+  if (!huboDatos) return;
+
+  // Recalcular derivados y refrescar UI
+  try {
+    document.getElementById("sexo")?.dispatchEvent(new Event("change"));
+    calcularEdad();
+    calcularIMC();
+    calcularGET();
+    calcularZonasFC();
+    updateCustomInputs();
+    updateProgress();
+  } catch (_) {}
+  toast("📝 Recuperamos tu progreso guardado. Continúa donde lo dejaste.", "info");
+}
+
 // ─── Recolector de datos del formulario ─────────────────────────────────────
 function recolectarDatos() {
 
@@ -3042,10 +3457,12 @@ function recolectarDatos() {
     if (cb.dataset.cat) return; // alimentos se recogen por separado
     const labelTxt = cb.closest(".chk")?.querySelector(".chk-txt")?.textContent?.trim();
     if (!labelTxt) return;
+    // Prioriza el .lbl del .campo si el grupo está dentro de uno (ej. "Problemas
+    // específicos de sueño", "Sustancias utilizadas"); si no, usa el título del subsec.
+    const campoLbl = cb.closest(".campo")?.querySelector(".lbl")?.textContent?.trim().replace(/\s*\*+\s*$/, "");
     const seccion  = cb.closest(".sub-seccion, .subsec");
-    const titulo   = seccion?.querySelector(".sub-sec-titulo, .subsec-titulo")?.textContent?.trim()
-                  || cb.closest(".campo")?.querySelector(".lbl")?.textContent?.trim().replace(/\s*\*+\s*$/, "")
-                  || "General";
+    const subsecTit = seccion?.querySelector(".sub-sec-titulo, .subsec-titulo")?.textContent?.trim();
+    const titulo   = campoLbl || subsecTit || "General";
     if (!checks[titulo]) checks[titulo] = [];
     checks[titulo].push(labelTxt);
   });
@@ -3070,17 +3487,24 @@ function recolectarDatos() {
     if (checked) escalas[name] = checked.value;
   });
 
-  // 6 · Datos de contacto explícitos para reply-to y asunto en Resend
-  const contacto = {};
-  document.querySelectorAll(".campo").forEach(campoEl => {
-    const rawLbl = campoEl.querySelector(".lbl")?.textContent?.trim() || "";
-    const lbl    = rawLbl.replace(/\s*\*+\s*$/, "").trim().toLowerCase();
-    const input  = campoEl.querySelector("input, select, textarea");
-    if (!lbl || !input || !input.value.trim()) return;
-    if (lbl.includes("nombre completo"))              contacto.nombre   = input.value.trim();
-    if (lbl.includes("correo") || lbl.includes("email")) contacto.email = input.value.trim();
-    if (lbl.includes("teléfono") || lbl.includes("telefono")) contacto.telefono = input.value.trim();
-  });
+  // 6 · Datos de contacto explícitos para reply-to y asunto en Resend.
+  //     Lectura primaria por id (robusta); fallback a texto de label por compatibilidad.
+  const contacto = {
+    nombre:   document.getElementById("c-nombre")?.value.trim()   || "",
+    email:    document.getElementById("c-email")?.value.trim()    || "",
+    telefono: document.getElementById("c-telefono")?.value.trim() || "",
+  };
+  if (!contacto.nombre || !contacto.email || !contacto.telefono) {
+    document.querySelectorAll(".campo").forEach(campoEl => {
+      const rawLbl = campoEl.querySelector(".lbl")?.textContent?.trim() || "";
+      const lbl    = rawLbl.replace(/\s*\*+\s*$/, "").trim().toLowerCase();
+      const input  = campoEl.querySelector("input, select, textarea");
+      if (!lbl || !input || !input.value.trim()) return;
+      if (!contacto.nombre   && lbl.includes("nombre completo"))                 contacto.nombre   = input.value.trim();
+      if (!contacto.email    && (lbl.includes("correo") || lbl.includes("email"))) contacto.email = input.value.trim();
+      if (!contacto.telefono && (lbl.includes("teléfono") || lbl.includes("telefono"))) contacto.telefono = input.value.trim();
+    });
+  }
 
   // 7 · Metadata
   const metadata = {
@@ -3092,7 +3516,13 @@ function recolectarDatos() {
     progreso:     document.getElementById("pb-pct")?.textContent || "0%",
   };
 
-  return { campos, radios, checks, alimentos, escalas, contacto, metadata };
+  // 8 · Honeypot anti-spam (debe ir vacío; los bots lo rellenan)
+  const hp = document.getElementById("hp-website")?.value || "";
+
+  // 9 · Time-trap: ms transcurridos desde la carga (bots envían casi instantáneo)
+  metadata.fillMs = Date.now() - (window.__formLoadedAt || Date.now());
+
+  return { campos, radios, checks, alimentos, escalas, contacto, metadata, hp };
 }
 
 // ─── Función principal ────────────────────────────────────────────────────────
@@ -3104,6 +3534,34 @@ async function enviarFormulario() {
     return;
   }
 
+  // Validar TODOS los requeridos: marca en rojo y salta al primer inválido
+  const primerInvalido = validarTodoRequerido();
+  if (primerInvalido) {
+    const panel = primerInvalido.closest(".tab-panel");
+    if (panel) switchTab(parseInt(panel.id.replace("panel-", "")) || 0);
+    setTimeout(() => {
+      primerInvalido.scrollIntoView({ behavior: "smooth", block: "center" });
+      primerInvalido.focus();
+    }, 60);
+    toast("⚠️ Revisa los campos marcados en rojo antes de enviar.", "warning");
+    return;
+  }
+
+  // Validar datos de contacto (sin <form> los atributos required/type=email no validan solos)
+  const payload = recolectarDatos();
+  const c = payload.contacto;
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email);
+  if (!c.nombre || !emailOk || !c.telefono) {
+    const faltan = [
+      !c.nombre   ? "nombre" : null,
+      !emailOk    ? "email válido" : null,
+      !c.telefono ? "teléfono" : null,
+    ].filter(Boolean).join(", ");
+    toast(`⚠️ Revisa tus datos de contacto: ${faltan}.`, "warning");
+    if (typeof switchTab === "function") switchTab(0);
+    return;
+  }
+
   // Advertir si el formulario está muy incompleto
   const progreso = parseInt(document.getElementById("pb-pct")?.textContent) || 0;
   if (progreso < 50) {
@@ -3112,30 +3570,45 @@ async function enviarFormulario() {
     }
   }
 
+  // Sin conexión: evita botón colgado
+  if (navigator.onLine === false) {
+    toast("📶 Sin conexión a internet. Conéctate e intenta de nuevo.", "error");
+    return;
+  }
+
   // Estado: enviando
   const btn = document.querySelector("#panel-5 .tab-nav-btn.primary");
   const originalHTML = btn?.innerHTML;
   if (btn) { btn.disabled = true; btn.innerHTML = "⏳ Enviando..."; }
 
-  try {
-    const payload = recolectarDatos();
+  // Timeout para no dejar el botón colgado si el worker tarda (cold start / red lenta)
+  const ctrl = new AbortController();
+  const timeoutId = setTimeout(() => ctrl.abort(), 20000);
 
+  try {
     const res = await fetch(WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      signal: ctrl.signal,
     });
 
-    const result = await res.json();
-    if (!res.ok || !result.success) throw new Error(result.error || "Error al enviar");
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result.success) throw new Error(result.error || `Error ${res.status}`);
 
     // ── Éxito ────────────────────────────────────────────────────────────
+    try { localStorage.removeItem(LS_KEY); } catch (_) {}
     pantallaExito();
 
   } catch (err) {
     console.error("enviarFormulario:", err);
-    toast(`❌ Error al enviar: ${err.message}\n\nIntenta de nuevo o contacta directamente.`, "error");
+    const msg = err.name === "AbortError"
+      ? "La conexión tardó demasiado. Revisa tu internet e intenta de nuevo."
+      : err.message;
+    toast(`❌ Error al enviar: ${msg}\n\nIntenta de nuevo o contacta directamente.`, "error");
     if (btn) { btn.disabled = false; btn.innerHTML = originalHTML; }
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -3205,7 +3678,7 @@ function toggleLesionEspecifica(el) {
 }
 
 // Redimensionar ink en cambio de tamaño
-window.addEventListener('resize', updateTabInk);
+window.addEventListener('resize', function() { updateTabInk(); setFixedHeight(); });
 
 // Cerrar modal al hacer clic fuera
 document.getElementById('modal-lista')?.addEventListener('click', function(e) {
