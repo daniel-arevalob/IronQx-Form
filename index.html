@@ -369,8 +369,43 @@ hr.div { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
 .inp.invalid { border-color: var(--red) !important; box-shadow: 0 0 0 3px var(--red-bg) !important; }
 .field-error { margin-top: 5px; font-size: 11px; color: var(--red); font-weight: 600; display: flex; align-items: center; gap: 5px; animation: fadeInUp .18s ease; }
 /* Indicador de guardado */
-.pb-saved { font-size: 10.5px; font-weight: 700; color: var(--green); letter-spacing: 0.3px; white-space: nowrap; opacity: 0; transition: opacity .3s ease; flex-shrink: 0; }
-.pb-saved.show { opacity: 1; }
+.pb-saved {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  z-index: 1200;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: rgba(13,14,16,0.96);
+  border: 1px solid rgba(53,176,106,0.38);
+  box-shadow: 0 12px 34px rgba(0,0,0,0.36), 0 0 24px rgba(53,176,106,0.08);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 18px) scale(0.98);
+  transition: opacity .22s ease, transform .22s ease;
+}
+.pb-saved::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--green);
+  box-shadow: 0 0 12px rgba(53,176,106,0.7);
+}
+.pb-saved.show {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
 /* Resumen pre-envío */
 .resumen-envio { margin: 4px 0 18px; }
 .resumen-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
@@ -384,26 +419,6 @@ hr.div { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
 :root { --fixed-h: 130px; }
 .seccion { scroll-margin-top: calc(var(--fixed-h) + 74px); }
 /* Mini-índice de secciones por panel (1 fila, scroll horizontal) */
-.sec-nav {
-  position: sticky; top: var(--fixed-h); z-index: 40;
-  display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto;
-  -webkit-overflow-scrolling: touch; scrollbar-width: none;
-  padding: 9px 10px; margin-bottom: 14px;
-  background: rgba(13,14,16,0.92); backdrop-filter: blur(8px);
-  border: 1px solid var(--line); border-radius: 10px;
-}
-.sec-nav::-webkit-scrollbar { display: none; }
-.sec-nav-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 5px 11px; border-radius: 7px; cursor: pointer;
-  background: var(--card2); border: 1px solid var(--line);
-  font-size: 11px; font-weight: 600; color: var(--muted);
-  transition: color .15s, border-color .15s, background .15s; white-space: nowrap;
-}
-.sec-nav-chip:hover { color: var(--txt); border-color: var(--gold-brd); }
-.sec-nav-chip b { color: var(--gold); font-weight: 900; font-size: 12px; }
-.sec-nav-chip.active { color: var(--txt); border-color: var(--gold); background: var(--gold-bg); }
-@media (max-width: 480px) { .sec-nav-chip .snc-txt { display: none; } }
 /* Micro-animación al marcar check/radio/escala */
 @keyframes chkPop { 0% { transform: scale(.6); } 55% { transform: scale(1.18); } 100% { transform: scale(1); } }
 .chk input[type="checkbox"]:checked, .rdo input[type="radio"]:checked { animation: chkPop .22s ease; }
@@ -489,7 +504,6 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
   #tab-nav { gap: 0; }
   .tab-btn { padding: 10px 4px 8px; min-width: 0; }
   .tab-label { display: none; }
-  .tab-progress { display: none; }
   .tab-icon { font-size: 22px; }
 }
 
@@ -644,19 +658,15 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
   transition: color 0.2s ease;
   font-family: inherit;
 }
-.tab-progress {
-  font-size: 9.5px;
-  font-weight: 800;
-  color: var(--muted);
-  transition: color 0.2s ease;
-  font-family: inherit;
-  letter-spacing: 0.3px;
-  min-height: 13px;
-}
 .tab-btn.active .tab-label { color: var(--gold); }
-.tab-btn.active .tab-progress { color: var(--gold); }
 .tab-btn.active .tab-icon { transform: scale(1.18) translateY(-1px); }
 .tab-btn:not(.active):hover .tab-label { color: var(--txt); }
+.tab-btn[data-tab="5"] .tab-icon {
+  color: var(--green);
+  font-weight: 900;
+  text-shadow: 0 0 12px rgba(53,176,106,0.35);
+}
+.tab-btn[data-tab="5"].active .tab-label { color: var(--green); }
 .tab-ink {
   position: absolute;
   bottom: 0;
@@ -938,11 +948,11 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
   <span class="pb-logo"><span style="color:#c8cdd8;">IRON</span><span style="color:#d4a843;">Qx</span></span>
   <div class="pb-track"><div class="pb-fill" id="pb-fill"></div></div>
   <span class="pb-pct" id="pb-pct">0%</span>
-  <span class="pb-saved" id="pb-saved">Guardado ✓</span>
   <button id="btn-pdf" onclick="generarPDF()" class="pb-print" style="background:linear-gradient(135deg,rgba(212,168,67,0.22),rgba(184,122,16,0.18));border:1px solid var(--gold-brd);color:var(--gold);font-size:11px;font-weight:800;letter-spacing:0.5px;padding:5px 13px;border-radius:7px;cursor:pointer;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:6px;transition:background .15s,border-color .15s;">
     <span style="font-size:1.1em;">📄</span> Descargar PDF
   </button>
 </div>
+<div class="pb-saved" id="pb-saved" role="status" aria-live="polite">Guardado</div>
 
 <!-- ══════════════════════════════════════════════════
      PORTADA
@@ -992,32 +1002,26 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
     <button class="tab-btn active" onclick="switchTab(0)" data-tab="0">
       <span class="tab-icon">👤</span>
       <span class="tab-label">Datos</span>
-      <span class="tab-progress">0%</span>
     </button>
     <button class="tab-btn" onclick="switchTab(1)" data-tab="1">
       <span class="tab-icon">🍽️</span>
       <span class="tab-label">Alimentación</span>
-      <span class="tab-progress">0%</span>
     </button>
     <button class="tab-btn" onclick="switchTab(2)" data-tab="2">
       <span class="tab-icon">⚡</span>
       <span class="tab-label">Metabolismo</span>
-      <span class="tab-progress">0%</span>
     </button>
     <button class="tab-btn" onclick="switchTab(3)" data-tab="3">
       <span class="tab-icon">🎯</span>
       <span class="tab-label">Objetivos</span>
-      <span class="tab-progress">0%</span>
     </button>
     <button class="tab-btn" onclick="switchTab(4)" data-tab="4">
       <span class="tab-icon">💊</span>
       <span class="tab-label">Suplementos</span>
-      <span class="tab-progress">0%</span>
     </button>
     <button class="tab-btn" onclick="switchTab(5)" data-tab="5">
       <span class="tab-icon">✓</span>
       <span class="tab-label">Confirmar</span>
-      <span class="tab-progress">0%</span>
     </button>
     <div class="tab-ink" id="tab-ink"></div>
   </div>
@@ -2658,9 +2662,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Asociar cada label .lbl con su input (foco al clic + accesibilidad)
   wireLabels();
-  // Mini-índice de secciones en paneles con 2+ secciones
-  buildSectionNav();
-
   // Inicializar tabs
   updateTabInk();
   // Restaurar borrador ANTES del primer updateProgress (que sobrescribiría el guardado)
@@ -2817,46 +2818,6 @@ function setFixedHeight() {
   const h = (pb ? pb.offsetHeight : 0) +
             (tn && tn.style.display !== 'none' ? tn.offsetHeight : 0);
   if (h > 0) document.documentElement.style.setProperty('--fixed-h', h + 'px');
-}
-
-// Construye un mini-índice sticky en cada panel con 2+ secciones
-function buildSectionNav() {
-  document.querySelectorAll('.tab-panel').forEach(panel => {
-    const secs = panel.querySelectorAll(':scope > .seccion');
-    if (secs.length < 2 || panel.querySelector(':scope > .sec-nav')) return;
-
-    const nav = document.createElement('div');
-    nav.className = 'sec-nav';
-    const mapa = new Map(); // sección → chip
-    secs.forEach((sec, i) => {
-      if (!sec.id) sec.id = `${panel.id}-sec-${i}`;
-      const num = sec.querySelector('.sec-num')?.textContent?.trim() || (i + 1);
-      const titulo = sec.querySelector('.sec-titulo')?.textContent?.trim() || '';
-      const chip = document.createElement('span');
-      chip.className = 'sec-nav-chip';
-      chip.innerHTML = `<b>${num}</b><span class="snc-txt"></span>`;
-      chip.querySelector('.snc-txt').textContent = titulo;
-      chip.addEventListener('click', () => {
-        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-      nav.appendChild(chip);
-      mapa.set(sec, chip);
-    });
-    panel.insertBefore(nav, panel.firstChild);
-
-    // Resalta el chip de la sección visible al hacer scroll
-    if ('IntersectionObserver' in window) {
-      const obs = new IntersectionObserver(entries => {
-        entries.forEach(e => {
-          if (e.isIntersecting) {
-            nav.querySelectorAll('.sec-nav-chip').forEach(c => c.classList.remove('active'));
-            mapa.get(e.target)?.classList.add('active');
-          }
-        });
-      }, { rootMargin: `-${parseInt(getComputedStyle(document.documentElement).getPropertyValue('--fixed-h')) + 80}px 0px -55% 0px`, threshold: 0 });
-      secs.forEach(sec => obs.observe(sec));
-    }
-  });
 }
 
 // Asocia cada <label class="lbl"> a su input/select/textarea hermano vía for/id.
@@ -3184,43 +3145,6 @@ function updateProgress() {
   if (pbPct) pbPct.textContent = percent + '%';
   if (resumen) resumen.textContent = percent + '%';
   
-  // Actualizar progreso en tabs — cada tab muestra su propio %
-  const panels = document.querySelectorAll('.tab-panel');
-  document.querySelectorAll('.tab-btn').forEach((btn, idx) => {
-    const progress = btn.querySelector('.tab-progress');
-    if (!progress) return;
-
-    const panel = document.getElementById(`panel-${idx}`);
-    if (!panel) { progress.textContent = ''; return; }
-
-    const panelInputs = panel.querySelectorAll('input[required], select[required], textarea[required]');
-    let pFilled = 0, pTotal = panelInputs.length;
-    panelInputs.forEach(inp => { if (inp.value.trim() !== '') pFilled++; });
-
-    // contar grupos radio relevantes dentro del panel
-    const panelRadioNames = new Set();
-    panel.querySelectorAll('input[type="radio"]').forEach(r => panelRadioNames.add(r.name));
-    panelRadioNames.forEach(name => {
-      if (['dieta','objetivo','actividad','somatotipo'].includes(name)) {
-        pTotal++;
-        if (panel.querySelector(`input[name="${name}"]:checked`)) pFilled++;
-      }
-    });
-
-    const tabPct = pTotal > 0 ? Math.round((pFilled / pTotal) * 100) : 0;
-
-    if (tabPct === 100) {
-      progress.textContent = '✓';
-      progress.style.color = 'var(--green)';
-    } else if (idx < currentTab || tabPct > 0) {
-      progress.textContent = tabPct + '%';
-      progress.style.color = tabPct >= 80 ? 'var(--green)' : tabPct >= 40 ? 'var(--gold)' : 'var(--muted)';
-    } else {
-      progress.textContent = '—';
-      progress.style.color = 'var(--muted)';
-    }
-  });
-
   // Persistir borrador en cada cambio
   guardarBorrador();
 }
