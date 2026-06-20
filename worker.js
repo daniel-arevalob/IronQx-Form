@@ -42,28 +42,40 @@ export default {
       const fecha         = metadata.fecha || new Date().toLocaleDateString("es-EC");
 
       // Validación de email server-side: si es inválido NO rompemos el envío,
-      // solo omitimos reply_to/cc para no perder el lead.
+      // solo omitimos el correo de confirmación al paciente (no perdemos el lead).
       const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailPaciente);
 
       const emailHtml = buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, checks, alimentos, escalas });
 
-      const resendBody = {
+      // Email 1 · Aviso interno al coach con la ficha completa
+      const emailCoach = {
         from: `${FROM_NAME} <${FROM_EMAIL}>`,
         to:   [TO_EMAIL],
         reply_to: emailValido ? emailPaciente : undefined,
         subject: oneLine(`📋 IRONQx — ${nombre} · ${fecha}`),
         html: emailHtml,
       };
-      // Copia al paciente solo si el correo es válido
-      if (emailValido) resendBody.cc = [emailPaciente];
 
-      const resendRes = await fetch("https://api.resend.com/emails", {
+      // Email 2 · Confirmación al paciente (branded, sin datos clínicos internos)
+      const lote = [emailCoach];
+      if (emailValido) {
+        lote.push({
+          from: `IRONQx · Coaching <${FROM_EMAIL}>`,
+          to:   [emailPaciente],
+          reply_to: TO_EMAIL,
+          subject: "✅ Recibimos tu ficha — IRONQx",
+          html: buildConfirmEmail({ nombre }),
+        });
+      }
+
+      // Envío en lote (1 sola llamada) vía Resend
+      const resendRes = await fetch("https://api.resend.com/emails/batch", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${env.RESEND_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(resendBody),
+        body: JSON.stringify(lote),
       });
 
       if (!resendRes.ok) {
@@ -202,7 +214,7 @@ function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, ch
       background:rgba(212,168,67,0.12);border:1px solid rgba(212,168,67,0.35);
       border-radius:20px">
       <span style="font-size:13px;font-weight:700;color:#d4a843;letter-spacing:1px">
-        📋 Nuevo Formulario de Ingreso — Protocolo 2026
+        📋 Nuevo Formulario de Ingreso
       </span>
     </div>
   </td></tr>
@@ -392,7 +404,7 @@ function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, ch
   <tr><td style="padding:24px;text-align:center">
     <div style="font-size:10px;color:#aaa;letter-spacing:1px;line-height:1.8">
       <strong style="color:#d4a843">IRONQx</strong> · Clinical &amp; Performance Coaching<br>
-      Protocolo 2026 · La información es estrictamente confidencial.<br>
+      La información es estrictamente confidencial.<br>
       Este correo fue generado automáticamente al enviar el formulario.
     </div>
   </td></tr>
@@ -402,6 +414,77 @@ function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, ch
 </table><!-- /wrapper -->
 </body>
 </html>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  EMAIL DE CONFIRMACIÓN AL PACIENTE (branded, sin datos clínicos internos)
+// ═══════════════════════════════════════════════════════════════════════════
+
+function buildConfirmEmail({ nombre }) {
+  const nombreH = esc(nombre);
+  return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recibimos tu ficha · IRONQx</title></head>
+<body style="margin:0;padding:0;background:#f2f3f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f2f3f5;padding:32px 16px"><tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">
+
+  <!-- Header / marca -->
+  <tr><td style="background:linear-gradient(135deg,#0d0e10 0%,#1a1d24 100%);
+    border-radius:16px 16px 0 0;padding:40px 40px 34px;text-align:center">
+    <div style="font-size:38px;font-weight:900;letter-spacing:8px;color:#d4a843;
+      text-shadow:0 2px 20px rgba(212,168,67,0.4)">IRON<span style="color:#c8cdd8">Qx</span></div>
+    <div style="font-size:10px;letter-spacing:3.5px;text-transform:uppercase;color:#7a7f8e;margin-top:6px">
+      Clinical &amp; Performance Coaching
+    </div>
+  </td></tr>
+
+  <!-- Cuerpo -->
+  <tr><td style="background:#ffffff;border:1px solid #e4e6eb;border-top:none;
+    border-radius:0 0 16px 16px;padding:40px 38px 36px;text-align:center">
+
+    <div style="font-size:52px;line-height:1;margin-bottom:18px">✅</div>
+
+    <h1 style="font-size:21px;font-weight:800;color:#1a1a1a;letter-spacing:0.3px;margin:0 0 14px">
+      ¡Recibimos tu ficha, ${nombreH}!
+    </h1>
+
+    <p style="font-size:14.5px;color:#444;line-height:1.75;margin:0 0 18px">
+      Gracias por tomarte el tiempo de completarla con detalle. Toda tu información
+      ya está en mis manos y es <strong style="color:#a8832a">estrictamente confidencial</strong>.
+    </p>
+
+    <div style="background:#faf6ea;border:1px solid #e8dcb8;border-radius:12px;
+      padding:18px 22px;margin:6px 0 22px">
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#a8832a;font-weight:700;margin-bottom:6px">
+        Próximo paso
+      </div>
+      <div style="font-size:14.5px;color:#333;line-height:1.7">
+        Revisaré cada sección con cuidado y tendrás tu plan
+        <strong style="color:#a8832a">100% personalizado</strong> en
+        <strong style="color:#a8832a">24–48 horas hábiles</strong>.
+      </div>
+    </div>
+
+    <p style="font-size:13.5px;color:#666;line-height:1.7;margin:0 0 4px">
+      Si necesitas agregar algo, solo responde a este correo.
+    </p>
+    <p style="font-size:15px;color:#1a1a1a;font-weight:700;margin:16px 0 0">
+      💪 ¡Juntos vamos a lograrlo!
+    </p>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td style="padding:22px;text-align:center">
+    <div style="font-size:10px;color:#aaa;letter-spacing:1px;line-height:1.8">
+      <strong style="color:#d4a843">IRONQx</strong> · Clinical &amp; Performance Coaching<br>
+      Este es un mensaje automático de confirmación.
+    </div>
+  </td></tr>
+
+</table>
+</td></tr></table>
+</body></html>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
