@@ -419,6 +419,26 @@ hr.div { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
 :root { --fixed-h: 130px; }
 .seccion { scroll-margin-top: calc(var(--fixed-h) + 74px); }
 /* Mini-índice de secciones por panel (1 fila, scroll horizontal) */
+.sec-nav {
+  position: sticky; top: var(--fixed-h); z-index: 40;
+  display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  padding: 9px 10px; margin-bottom: 14px;
+  background: rgba(13,14,16,0.92); backdrop-filter: blur(8px);
+  border: 1px solid var(--line); border-radius: 10px;
+}
+.sec-nav::-webkit-scrollbar { display: none; }
+.sec-nav-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 11px; border-radius: 7px; cursor: pointer;
+  background: var(--card2); border: 1px solid var(--line);
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  transition: color .15s, border-color .15s, background .15s; white-space: nowrap;
+}
+.sec-nav-chip:hover { color: var(--txt); border-color: var(--gold-brd); }
+.sec-nav-chip b { color: var(--gold); font-weight: 900; font-size: 12px; }
+.sec-nav-chip.active { color: var(--txt); border-color: var(--gold); background: var(--gold-bg); }
+@media (max-width: 480px) { .sec-nav-chip .snc-txt { display: none; } }
 /* Micro-animación al marcar check/radio/escala */
 @keyframes chkPop { 0% { transform: scale(.6); } 55% { transform: scale(1.18); } 100% { transform: scale(1); } }
 .chk input[type="checkbox"]:checked, .rdo input[type="radio"]:checked { animation: chkPop .22s ease; }
@@ -505,6 +525,13 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
   .tab-btn { padding: 10px 4px 8px; min-width: 0; }
   .tab-label { display: none; }
   .tab-icon { font-size: 22px; }
+
+  /* Escalas 1–10: los labels de texto se salían de cajas de ~29px.
+     En móvil se ocultan; el descriptor aparece en el pill "N/10 · Alto" al elegir. */
+  .escala { gap: 4px; justify-content: space-between; overflow: visible; }
+  .escala-item { flex: 1 1 0; min-width: 0; padding: 10px 0 9px; }
+  .esc-n { font-size: 16px; }
+  .esc-lbl { display: none; }
 }
 
 /* ── METABOLICA CARDS ─────────────────────────────────── */
@@ -2662,6 +2689,8 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Asociar cada label .lbl con su input (foco al clic + accesibilidad)
   wireLabels();
+  // Mini-índice de secciones en paneles con 2+ secciones
+  buildSectionNav();
   // Inicializar tabs
   updateTabInk();
   // Restaurar borrador ANTES del primer updateProgress (que sobrescribiría el guardado)
@@ -2818,6 +2847,46 @@ function setFixedHeight() {
   const h = (pb ? pb.offsetHeight : 0) +
             (tn && tn.style.display !== 'none' ? tn.offsetHeight : 0);
   if (h > 0) document.documentElement.style.setProperty('--fixed-h', h + 'px');
+}
+
+// Construye un mini-índice sticky en cada panel con 2+ secciones
+function buildSectionNav() {
+  document.querySelectorAll('.tab-panel').forEach(panel => {
+    const secs = panel.querySelectorAll(':scope > .seccion');
+    if (secs.length < 2 || panel.querySelector(':scope > .sec-nav')) return;
+
+    const nav = document.createElement('div');
+    nav.className = 'sec-nav';
+    const mapa = new Map(); // sección → chip
+    secs.forEach((sec, i) => {
+      if (!sec.id) sec.id = `${panel.id}-sec-${i}`;
+      const num = sec.querySelector('.sec-num')?.textContent?.trim() || (i + 1);
+      const titulo = sec.querySelector('.sec-titulo')?.textContent?.trim() || '';
+      const chip = document.createElement('span');
+      chip.className = 'sec-nav-chip';
+      chip.innerHTML = `<b>${num}</b><span class="snc-txt"></span>`;
+      chip.querySelector('.snc-txt').textContent = titulo;
+      chip.addEventListener('click', () => {
+        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      nav.appendChild(chip);
+      mapa.set(sec, chip);
+    });
+    panel.insertBefore(nav, panel.firstChild);
+
+    // Resalta el chip de la sección visible al hacer scroll
+    if ('IntersectionObserver' in window) {
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            nav.querySelectorAll('.sec-nav-chip').forEach(c => c.classList.remove('active'));
+            mapa.get(e.target)?.classList.add('active');
+          }
+        });
+      }, { rootMargin: `-${parseInt(getComputedStyle(document.documentElement).getPropertyValue('--fixed-h')) + 80}px 0px -55% 0px`, threshold: 0 });
+      secs.forEach(sec => obs.observe(sec));
+    }
+  });
 }
 
 // Asocia cada <label class="lbl"> a su input/select/textarea hermano vía for/id.
