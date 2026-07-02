@@ -3033,8 +3033,8 @@ function calcularTMB(peso, estatura, sexo, edad = 30) {
   document.getElementById('tmb-val').textContent = Math.round(tmb);
   calcularGET(tmb);
   
-  // Calcular FC max y zonas
-  const fcmax = sexo === 'F' ? 226 - edad : 220 - edad;
+  // Calcular FC max y zonas — Tanaka 2001 (208 − 0.7 × edad): más precisa e independiente del sexo
+  const fcmax = Math.round(208 - 0.7 * edad);
   document.getElementById('fcmax').value = fcmax;
   document.getElementById('zonaaerobica').value = `${Math.round(fcmax * 0.6)}-${Math.round(fcmax * 0.7)} lpm`;
   document.getElementById('zonaquemagrasa').value = `${Math.round(fcmax * 0.7)}-${Math.round(fcmax * 0.8)} lpm`;
@@ -3049,7 +3049,7 @@ function calcularZonasFC() {
   const sexo = document.getElementById('sexo')?.value;
   
   if (fcReposo) {
-    const fcmax = sexo === 'F' ? 226 - edad : 220 - edad;
+    const fcmax = Math.round(208 - 0.7 * edad);
     const hrr = fcmax - fcReposo;
     
     document.getElementById('zonaaerobica').value = `${Math.round(fcReposo + (hrr * 0.6))}-${Math.round(fcReposo + (hrr * 0.7))} lpm`;
