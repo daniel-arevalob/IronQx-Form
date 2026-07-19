@@ -2613,7 +2613,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
         </div>
         <div class="campo">
           <label class="lbl">Fecha *</label>
-          <input type="date" class="inp" id="fecha-firma" required onchange="updateProgress()">
+          <input type="date" class="inp" id="fecha-firma" required data-progress-ignore="true" onchange="updateProgress()">
         </div>
       </div>
 
@@ -3193,30 +3193,38 @@ function updateEscalaFeedback() {
 // Cálculo de progreso
 function updateProgress() {
   updateCustomInputs();
-  
-  const inputs = document.querySelectorAll('input[required], select[required], textarea[required]');
-  const allInputs = document.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), select, textarea');
-  
-  let filled = 0;
-  let total = 0;
-  
-  // Contar campos rellenados
-  inputs.forEach(input => {
-    if (input.value.trim() !== '') filled++;
-    total++;
+
+  // Los radios required llevan un value aunque no estén seleccionados. Se
+  // contabilizan como una sola respuesta por grupo para evitar progreso falso.
+  const requiredFields = Array.from(
+    document.querySelectorAll('input[required], select[required], textarea[required]')
+  ).filter(input =>
+    input.type !== 'radio' &&
+    input.type !== 'checkbox' &&
+    input.dataset.progressIgnore !== 'true'
+  );
+  const requiredRadioGroups = new Set(
+    Array.from(document.querySelectorAll('input[type="radio"][required]'))
+      .map(input => input.name)
+      .filter(Boolean)
+  );
+  const trackedRadioGroups = new Set([
+    ...requiredRadioGroups,
+    'dieta',
+    'actividad'
+  ]);
+  const terms = document.getElementById('acepto-terminos');
+
+  let total = requiredFields.length + trackedRadioGroups.size + (terms ? 1 : 0);
+  let filled = requiredFields.reduce(
+    (count, input) => count + ((input.value || '').trim() !== '' ? 1 : 0),
+    0
+  );
+  trackedRadioGroups.forEach(name => {
+    if (document.querySelector(`input[type="radio"][name="${name}"]:checked`)) filled++;
   });
-  
-  // Contar grupos de radio/checkbox con selección
-  const radioGroups = new Set();
-  document.querySelectorAll('input[type="radio"]').forEach(r => radioGroups.add(r.name));
-  radioGroups.forEach(name => {
-    // Solo contar grupos requeridos o importantes
-    if (['dieta', 'objetivo', 'actividad', 'somatotipo'].includes(name)) {
-      total++;
-      if (document.querySelector(`input[name="${name}"]:checked`)) filled++;
-    }
-  });
-  
+  if (terms?.checked) filled++;
+
   const percent = total > 0 ? Math.round((filled / total) * 100) : 0;
   
   // Actualizar barra de progreso
