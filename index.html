@@ -2708,6 +2708,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Restaurar borrador ANTES del primer updateProgress (que sobrescribiría el guardado)
   restaurarBorrador();
   updateProgress();
+  cargarAsignacion().catch(() => {});
   
   // Ocultar form hasta que el usuario haga clic en Comenzar
   document.querySelectorAll('.parte-label').forEach(el => el.style.display = 'none');
@@ -3228,6 +3229,7 @@ function updateProgress() {
   
   // Persistir borrador en cada cambio
   guardarBorrador();
+  sincronizarProgresoAsignado(percent);
 }
 
 // Generar Lista de Compras
@@ -3348,9 +3350,102 @@ function generarPDF() {
 }
 
 const WORKER_URL = "https://ironqx-form.daniel-arevalo2709.workers.dev";
+const INTAKE_API_URL = "https://app.ironqx.fit/api/intake-assignment";
+const FORM_PARAMS = new URLSearchParams(window.location.search);
+const ASSIGNMENT_RAW = (FORM_PARAMS.get("assignment") || "").trim().toLowerCase();
+const ASSIGNMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(ASSIGNMENT_RAW)
+  ? ASSIGNMENT_RAW
+  : "";
+const RETURN_URL = (() => {
+  try {
+    const candidate = new URL(FORM_PARAMS.get("return") || "https://app.ironqx.fit");
+    if (candidate.origin === "https://app.ironqx.fit" ||
+        /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(candidate.origin)) {
+      return candidate.origin;
+    }
+  } catch (_) {}
+  return "https://app.ironqx.fit";
+})();
 
 // ─── Autoguardado local (anti-pérdida de datos en form largo) ───────────────
-const LS_KEY = "ironqx-form-v1";
+const LS_KEY = ASSIGNMENT_ID ? `ironqx-form-v1-${ASSIGNMENT_ID}` : "ironqx-form-v1";
+let _assignmentReady = false;
+let _assignmentProgressTimer = null;
+let _lastSyncedProgress = -1;
+
+function _setPrefill(id, value) {
+  const el = document.getElementById(id);
+  if (!el || el.value || value === null || value === undefined || value === "") return;
+  el.value = String(value);
+}
+
+function _goalValue(goal) {
+  const normalized = String(goal || "").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (/perd|defin|bajar/.test(normalized)) return "perdida_grasa";
+  if (/ganan|muscul|volumen|subir/.test(normalized)) return "ganancia_muscular";
+  if (/recomp/.test(normalized)) return "recomposicion";
+  if (/manten|performance|rendimiento/.test(normalized)) return "mantenimiento";
+  if (/salud/.test(normalized)) return "salud";
+  return "";
+}
+
+async function cargarAsignacion() {
+  if (!ASSIGNMENT_ID) return;
+  try {
+    const res = await fetch(`${INTAKE_API_URL}?assignment=${encodeURIComponent(ASSIGNMENT_ID)}`, {
+      headers: { "Accept": "application/json" },
+      cache: "no-store",
+    });
+    const result = await res.json().catch(() => ({}));
+    if (!res.ok || !result.ok) throw new Error(result.error || "Asignacion no disponible");
+
+    const prefill = result.prefill || {};
+    _setPrefill("c-nombre", prefill.name);
+    _setPrefill("c-telefono", prefill.phone);
+    _setPrefill("fecha-nac", prefill.birthDate);
+    _setPrefill("estatura", prefill.height);
+    _setPrefill("peso", prefill.weight);
+    _setPrefill("sexo", prefill.sex);
+    _setPrefill("grasa-corp", prefill.bodyFat);
+
+    const goalValue = _goalValue(prefill.goal);
+    if (goalValue && !document.querySelector('input[name="objetivo"]:checked')) {
+      const goalInput = document.querySelector(`input[name="objetivo"][value="${goalValue}"]`);
+      if (goalInput) goalInput.checked = true;
+    }
+
+    _assignmentReady = true;
+    try {
+      document.getElementById("sexo")?.dispatchEvent(new Event("change"));
+      calcularEdad();
+      calcularIMC();
+      calcularGET();
+      calcularZonasFC();
+      updateCustomInputs();
+      updateProgress();
+    } catch (_) {}
+  } catch (error) {
+    console.error("cargarAsignacion:", error);
+    toast("No pudimos vincular este formulario con tu perfil. Abre nuevamente la tarea desde IRONQx.", "error");
+  }
+}
+
+function sincronizarProgresoAsignado(percent) {
+  if (!ASSIGNMENT_ID || !_assignmentReady || percent === _lastSyncedProgress) return;
+  clearTimeout(_assignmentProgressTimer);
+  _assignmentProgressTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(INTAKE_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "progress", assignmentId: ASSIGNMENT_ID, progress: percent }),
+        keepalive: true,
+      });
+      if (res.ok) _lastSyncedProgress = percent;
+    } catch (_) {}
+  }, 1600);
+}
 
 // Controles persistibles en orden de documento (excluye botones y campos calculados readonly)
 function camposPersistibles() {
@@ -3553,6 +3648,7 @@ async function enviarFormulario() {
 
   // Validar datos de contacto (sin <form> los atributos required/type=email no validan solos)
   const payload = recolectarDatos();
+  if (ASSIGNMENT_ID) payload.assignmentId = ASSIGNMENT_ID;
   const c = payload.contacto;
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email);
   if (!c.nombre || !emailOk || !c.telefono) {
@@ -3633,9 +3729,20 @@ function toast(msg, tipo = "info") {
 }
 
 // ─── Pantalla de éxito ───────────────────────────────────────────────────────
+function volverAApp() {
+  if (window.parent !== window && ASSIGNMENT_ID) {
+    window.parent.postMessage({ type: "IRONQX_INTAKE_SUBMITTED", assignmentId: ASSIGNMENT_ID }, "*");
+    return;
+  }
+  window.location.href = RETURN_URL;
+}
+
 function pantallaExito() {
   const panel = document.getElementById("panel-5");
   if (!panel) return;
+  const appButton = ASSIGNMENT_ID
+    ? `<button type="button" onclick="volverAApp()" style="width:100%;margin-top:14px;padding:15px 18px;border:1px solid var(--gold-brd);border-radius:12px;background:var(--gold);color:#090a0d;font-weight:900;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer">Volver a IRONQx</button>`
+    : "";
 
   panel.innerHTML = `
     <div style="max-width:640px;margin:48px auto;text-align:center;padding:52px 40px 48px;
@@ -3661,7 +3768,12 @@ function pantallaExito() {
         border-radius:12px;padding:18px 24px;font-size:14px;color:var(--gold);font-weight:700">
         💪 ¡Juntos vamos a lograrlo!
       </div>
+      ${appButton}
     </div>`;
+
+  if (ASSIGNMENT_ID && window.parent !== window) {
+    window.parent.postMessage({ type: "IRONQX_INTAKE_SUBMITTED", assignmentId: ASSIGNMENT_ID }, "*");
+  }
 
   // Scroll suave al inicio del panel
   setTimeout(() => {

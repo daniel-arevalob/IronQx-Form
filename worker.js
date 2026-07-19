@@ -7,6 +7,7 @@
 const TO_EMAIL   = "ironqx.coach@gmail.com";   // ← tu email
 const FROM_EMAIL = "formulario@ironqx.fit"; // ← debe estar verificado en Resend
 const FROM_NAME  = "IRONQx · Formulario";
+const ASSIGNMENT_API_URL = "https://app.ironqx.fit/api/intake-assignment";
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
 const CORS = {
@@ -24,6 +25,7 @@ export default {
     try {
       const data = await request.json();
       const { campos = {}, radios = {}, checks = {}, alimentos = {}, escalas = {}, contacto = {}, metadata = {} } = data;
+      const assignmentId = validAssignmentId(data.assignmentId);
 
       // ── Anti-spam: honeypot + time-trap. Si se dispara, fingimos éxito
       //    y descartamos en silencio (el bot no reintenta).
@@ -33,6 +35,35 @@ export default {
         return new Response(JSON.stringify({ success: true }), {
           headers: { "Content-Type": "application/json", ...CORS },
         });
+      }
+
+      // Una asignacion vinculada se guarda primero en la app. El correo queda
+      // como copia de respaldo y no condiciona la recepcion del intake.
+      let assignmentSaved = false;
+      if (assignmentId) {
+        const responseData = { ...data };
+        delete responseData.assignmentId;
+        delete responseData.hp;
+        const assignmentRes = await fetch(ASSIGNMENT_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "submit",
+            assignmentId,
+            response: responseData,
+          }),
+        });
+        if (!assignmentRes.ok) {
+          console.error("Assignment save error:", assignmentRes.status, await assignmentRes.text());
+          throw new Error("ASSIGNMENT_SAVE_FAIL");
+        }
+        const assignmentResult = await assignmentRes.json().catch(() => ({}));
+        if (assignmentResult.duplicate) {
+          return new Response(JSON.stringify({ success: true, duplicate: true }), {
+            headers: { "Content-Type": "application/json", ...CORS },
+          });
+        }
+        assignmentSaved = true;
       }
 
       // Fallback robusto: usa contacto (extracción directa) o busca en campos normalizados
@@ -69,23 +100,39 @@ export default {
       }
 
       // Envío en lote (1 sola llamada) vía Resend
-      const resendRes = await fetch("https://api.resend.com/emails/batch", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${env.RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(lote),
-      });
+      let resendRes;
+      try {
+        resendRes = await fetch("https://api.resend.com/emails/batch", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(lote),
+        });
+      } catch (emailError) {
+        console.error("Resend network error:", emailError);
+        if (assignmentSaved) {
+          return new Response(JSON.stringify({ success: true, emailSent: false }), {
+            headers: { "Content-Type": "application/json", ...CORS },
+          });
+        }
+        throw emailError;
+      }
 
       if (!resendRes.ok) {
         const err = await resendRes.text();
         // Log completo en Cloudflare (wrangler tail / dashboard), respuesta genérica al cliente.
         console.error("Resend error:", resendRes.status, err);
+        if (assignmentSaved) {
+          return new Response(JSON.stringify({ success: true, emailSent: false }), {
+            headers: { "Content-Type": "application/json", ...CORS },
+          });
+        }
         throw new Error("RESEND_FAIL");
       }
 
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ success: true, emailSent: true }), {
         headers: { "Content-Type": "application/json", ...CORS },
       });
 
@@ -101,6 +148,13 @@ export default {
     }
   },
 };
+
+function validAssignmentId(value) {
+  const id = String(value || "").trim().toLowerCase();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(id)
+    ? id
+    : "";
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  SEGURIDAD / NORMALIZACIÓN
