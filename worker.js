@@ -26,6 +26,11 @@ export default {
       const data = await request.json();
       const { campos = {}, radios = {}, checks = {}, alimentos = {}, escalas = {}, contacto = {}, metadata = {} } = data;
       const assignmentId = validAssignmentId(data.assignmentId);
+      // El paciente es la segunda via: si el id de asignacion no llego o no es
+      // valido, el endpoint de la app resuelve la asignacion abierta por
+      // paciente. Antes, sin id, el envio se iba solo por correo y la
+      // asignacion se quedaba "Pendiente" aunque el paciente lo completara.
+      const patientId = validPatientId(data.patientId);
 
       // ── Anti-spam: honeypot + time-trap. Si se dispara, fingimos éxito
       //    y descartamos en silencio (el bot no reintenta).
@@ -40,9 +45,10 @@ export default {
       // Una asignacion vinculada se guarda primero en la app. El correo queda
       // como copia de respaldo y no condiciona la recepcion del intake.
       let assignmentSaved = false;
-      if (assignmentId) {
+      if (assignmentId || patientId) {
         const responseData = { ...data };
         delete responseData.assignmentId;
+        delete responseData.patientId;
         delete responseData.hp;
         const assignmentRes = await fetch(ASSIGNMENT_API_URL, {
           method: "POST",
@@ -50,6 +56,7 @@ export default {
           body: JSON.stringify({
             action: "submit",
             assignmentId,
+            patientId,
             response: responseData,
           }),
         });
@@ -148,6 +155,11 @@ export default {
     }
   },
 };
+
+function validPatientId(value) {
+  const id = String(value || "").trim();
+  return /^[A-Za-z0-9_-]{1,64}$/.test(id) ? id : "";
+}
 
 function validAssignmentId(value) {
   const id = String(value || "").trim().toLowerCase();

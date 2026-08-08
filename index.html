@@ -3361,9 +3361,15 @@ const WORKER_URL = "https://ironqx-form.daniel-arevalo2709.workers.dev";
 const INTAKE_API_URL = "https://app.ironqx.fit/api/intake-assignment";
 const FORM_PARAMS = new URLSearchParams(window.location.search);
 const ASSIGNMENT_RAW = (FORM_PARAMS.get("assignment") || "").trim().toLowerCase();
-const ASSIGNMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(ASSIGNMENT_RAW)
+let ASSIGNMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(ASSIGNMENT_RAW)
   ? ASSIGNMENT_RAW
   : "";
+// Red de seguridad: si el enlace pierde el parametro de asignacion (marcador,
+// enlace viejo, copiar/pegar), el paciente todavia identifica de quien es el
+// formulario y el servidor resuelve su asignacion abierta. Sin esto el envio
+// salia solo por correo y en la app se quedaba "Pendiente" para siempre.
+const PATIENT_RAW = (FORM_PARAMS.get("pid") || "").trim();
+const PATIENT_ID = /^[A-Za-z0-9_-]{1,64}$/.test(PATIENT_RAW) ? PATIENT_RAW : "";
 const RETURN_URL = (() => {
   try {
     const candidate = new URL(FORM_PARAMS.get("return") || "https://app.ironqx.fit");
@@ -3399,14 +3405,19 @@ function _goalValue(goal) {
 }
 
 async function cargarAsignacion() {
-  if (!ASSIGNMENT_ID) return;
+  if (!ASSIGNMENT_ID && !PATIENT_ID) return;
   try {
-    const res = await fetch(`${INTAKE_API_URL}?assignment=${encodeURIComponent(ASSIGNMENT_ID)}`, {
+    const q = `assignment=${encodeURIComponent(ASSIGNMENT_ID)}&pid=${encodeURIComponent(PATIENT_ID)}`;
+    const res = await fetch(`${INTAKE_API_URL}?${q}`, {
       headers: { "Accept": "application/json" },
       cache: "no-store",
     });
     const result = await res.json().catch(() => ({}));
     if (!res.ok || !result.ok) throw new Error(result.error || "Asignacion no disponible");
+
+    // Si se entro sin id valido, el servidor devuelve el que resolvio por
+    // paciente: a partir de aqui el formulario queda vinculado.
+    if (result.assignment?.id) ASSIGNMENT_ID = result.assignment.id;
 
     const prefill = result.prefill || {};
     _setPrefill("c-nombre", prefill.name);
@@ -3657,6 +3668,7 @@ async function enviarFormulario() {
   // Validar datos de contacto (sin <form> los atributos required/type=email no validan solos)
   const payload = recolectarDatos();
   if (ASSIGNMENT_ID) payload.assignmentId = ASSIGNMENT_ID;
+  if (PATIENT_ID) payload.patientId = PATIENT_ID;
   const c = payload.contacto;
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email);
   if (!c.nombre || !emailOk || !c.telefono) {
