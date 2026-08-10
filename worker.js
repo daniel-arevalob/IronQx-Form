@@ -190,12 +190,25 @@ function oneLine(v) {
 
 // Diccionarios value→label para mostrar texto legible en lugar de slugs/factores.
 const VAL_MAP = {
+  // Vida diaria sin entrenamiento (NEAT). El gasto del entreno se suma
+  // aparte con días × duración, no va dentro de este factor.
   actividad: {
-    "1.2":   "Sedentario (poco o nada de ejercicio)",
-    "1.375": "Ligero (1-3 días/semana)",
-    "1.55":  "Moderado (3-5 días/semana)",
-    "1.725": "Intenso (6-7 días/semana)",
-    "1.9":   "Muy intenso (físico / 2x día)",
+    "1.25": "Escritorio · menos de 5.000 pasos",
+    "1.35": "Poco activo · 5.000 a 7.500 pasos",
+    "1.45": "Activo · 7.500 a 10.000 pasos",
+    "1.6":  "Trabajo físico · más de 10.000 pasos",
+    // Valores del modelo anterior (fichas enviadas antes del cambio)
+    "1.2":   "Sedentario (escala antigua)",
+    "1.375": "Ligero 1-3 días (escala antigua)",
+    "1.55":  "Moderado 3-5 días (escala antigua)",
+    "1.725": "Intenso 6-7 días (escala antigua)",
+    "1.9":   "Muy intenso (escala antigua)",
+  },
+  "duracion-sesion": {
+    "35":  "Menos de 45 min",
+    "55":  "45 a 60 min",
+    "75":  "60 a 90 min",
+    "100": "Más de 90 min",
   },
   objetivo: {
     perdida_grasa:     "Pérdida de grasa corporal",
@@ -343,6 +356,7 @@ function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, ch
       ${bloque("03", "Entrenamiento", "🏋️", [
         fila("Nivel",        rp("nivel-experiencia")),
         fila("Días/semana",  c("Días/semana") || r("dias-entreno")),
+        fila("Duración sesión", rp("duracion-sesion")),
         fila("Equipamiento", rp("equipamiento")),
         fila("Gimnasio",     c("Nombre del gimnasio (si aplica)")),
         ch("Lesiones activas").length ? tagRow("Lesiones activas", ch("Lesiones activas"), "#d94f4f") : "",
@@ -372,7 +386,7 @@ function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, ch
 
       <!-- 10 · METABOLISMO -->
       ${bloque("10", "Metabolismo", "⚡", [
-        fila("Nivel de actividad",  rp("actividad")),
+        fila("Vida diaria (NEAT)",  rp("actividad")),
         fila("FC reposo",           c("FC en reposo (lpm)") ? c("FC en reposo (lpm)") + " lpm" : ""),
         fila("FC máxima",           c("FC máxima estimada") ? c("FC máxima estimada") + " lpm" : ""),
         fila("Zona aeróbica",       c("Zona aeróbica (60-70%)")),

@@ -246,6 +246,7 @@ body {
   border-bottom: 1px solid var(--line);
 }
 hr.div { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
+.hint { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 9px; }
 
 /* ── SUB-SECCIONES ── */
 .sub-seccion { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 18px; overflow: hidden; }
@@ -568,6 +569,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
 .meta-card .mc-val { font-size: 27px; font-weight: 900; color: var(--gold); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
 .meta-card .mc-unit { font-size: 10px; color: var(--muted); margin-top: 2px; }
 .meta-card .mc-lbl { font-size: 11px; color: var(--txt); margin-top: 6px; font-weight: 600; }
+.meta-card .mc-desglose { font-size: 9.5px; color: var(--muted); margin-top: 5px; line-height: 1.45; }
 .meta-bar-wrap { margin: 4px 0 14px; }
 .meta-bar-label { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 4px; }
 .meta-bar-track { background: var(--line); border-radius: 99px; height: 6px; overflow: hidden; }
@@ -1224,11 +1226,25 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
       <div class="subsec">
         <div class="subsec-titulo">Días de entrenamiento por semana *</div>
         <div class="radio-fila">
-          <label class="rdo"><input type="radio" name="dias-entreno" value="3" required onchange="updateProgress()"><span>3 días</span></label>
-          <label class="rdo"><input type="radio" name="dias-entreno" value="4" onchange="updateProgress()"><span>4 días</span></label>
-          <label class="rdo"><input type="radio" name="dias-entreno" value="5" onchange="updateProgress()"><span>5 días</span></label>
-          <label class="rdo"><input type="radio" name="dias-entreno" value="6" onchange="updateProgress()"><span>6 días</span></label>
+          <label class="rdo"><input type="radio" name="dias-entreno" value="3" required onchange="updateProgress();calcularGET()"><span>3 días</span></label>
+          <label class="rdo"><input type="radio" name="dias-entreno" value="4" onchange="updateProgress();calcularGET()"><span>4 días</span></label>
+          <label class="rdo"><input type="radio" name="dias-entreno" value="5" onchange="updateProgress();calcularGET()"><span>5 días</span></label>
+          <label class="rdo"><input type="radio" name="dias-entreno" value="6" onchange="updateProgress();calcularGET()"><span>6 días</span></label>
         </div>
+      </div>
+
+      <hr class="div">
+
+      <!-- Duración de la sesión — entra en el cálculo del gasto energético -->
+      <div class="subsec">
+        <div class="subsec-titulo">¿Cuánto dura una sesión típica? *</div>
+        <div class="radio-fila">
+          <label class="rdo"><input type="radio" name="duracion-sesion" value="35" required onchange="updateProgress();calcularGET()"><span>Menos de 45 min</span></label>
+          <label class="rdo"><input type="radio" name="duracion-sesion" value="55" onchange="updateProgress();calcularGET()"><span>45 a 60 min</span></label>
+          <label class="rdo"><input type="radio" name="duracion-sesion" value="75" onchange="updateProgress();calcularGET()"><span>60 a 90 min</span></label>
+          <label class="rdo"><input type="radio" name="duracion-sesion" value="100" onchange="updateProgress();calcularGET()"><span>Más de 90 min</span></label>
+        </div>
+        <div class="hint">Cuenta solo el tiempo entrenando, sin contar el traslado ni el vestuario.</div>
       </div>
 
       <hr class="div">
@@ -2034,6 +2050,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
           <div class="mc-val" id="get-val">--</div>
           <div class="mc-unit">kcal/día</div>
           <div class="mc-lbl">Gasto Energético Total</div>
+          <div class="mc-desglose" id="get-desglose"></div>
         </div>
         <div class="meta-card">
           <div class="mc-val" id="proteina-val">--</div>
@@ -2048,13 +2065,17 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
       </div>
 
       <div class="subsec">
-        <div class="subsec-titulo">Nivel de actividad física *</div>
+        <div class="subsec-titulo">Tu día a día, sin contar el entrenamiento *</div>
         <div class="radio-fila">
-          <label class="rdo"><input type="radio" name="actividad" value="1.2" onchange="calcularGET()"><span>Sedentario (poco/nada de ejercicio)</span></label>
-          <label class="rdo"><input type="radio" name="actividad" value="1.375" onchange="calcularGET()"><span>Ligero (1-3 días/semana)</span></label>
-          <label class="rdo"><input type="radio" name="actividad" value="1.55" onchange="calcularGET()"><span>Moderado (3-5 días/semana)</span></label>
-          <label class="rdo"><input type="radio" name="actividad" value="1.725" onchange="calcularGET()"><span>Activo (6-7 días/semana)</span></label>
-          <label class="rdo"><input type="radio" name="actividad" value="1.9" onchange="calcularGET()"><span>Muy activo (2x día, trabajo físico)</span></label>
+          <label class="rdo"><input type="radio" name="actividad" value="1.25" onchange="calcularGET()"><span>Escritorio · menos de 5.000 pasos</span></label>
+          <label class="rdo"><input type="radio" name="actividad" value="1.35" onchange="calcularGET()"><span>Poco activo · 5.000 a 7.500 pasos</span></label>
+          <label class="rdo"><input type="radio" name="actividad" value="1.45" onchange="calcularGET()"><span>Activo · 7.500 a 10.000 pasos</span></label>
+          <label class="rdo"><input type="radio" name="actividad" value="1.6" onchange="calcularGET()"><span>Trabajo físico · más de 10.000 pasos</span></label>
+        </div>
+        <div class="hint">
+          Aquí <b>no</b> cuentes tus sesiones de gimnasio: esas ya las registraste antes y se suman por separado.
+          Piensa solo en cómo pasas el resto del día — trabajo, estudio, desplazamientos, tareas de casa.
+          No es lo mismo estar sentado ocho horas que caminar todo el día, aunque los dos entrenen igual.
         </div>
       </div>
 
@@ -3058,6 +3079,30 @@ function calcularZonasFC() {
   }
 }
 
+/* ══ MODELO ENERGÉTICO ═════════════════════════════════════════════
+   El multiplicador único etiquetado por días de entrenamiento
+   sobreestimaba el gasto: contaba el entreno pero ignoraba el NEAT,
+   así que un oficinista y un repartidor que entrenan 4 días salían
+   igual. Ahora se separan las dos fuentes:
+
+     GET = TMB × PAL_base(vida diaria)  +  kcal de entreno / día
+
+   El entrenamiento se suma con METs (Compendium of Physical
+   Activities 2011) restando 1 MET, porque el reposo de esos minutos
+   ya está contado dentro de la TMB.
+═══════════════════════════════════════════════════════════════════ */
+const IQ_TRAIN_MET   = 5.0;   // fuerza en sala, esfuerzo moderado
+const IQ_SESSION_MIN = 60;    // duración asumida si aún no la eligió
+
+function kcalEntrenoDia(peso, sesiones, minutos) {
+  const kg  = parseFloat(peso) || 0;
+  const s   = Math.max(0, Math.min(14, parseFloat(sesiones) || 0));
+  const min = Math.max(0, Math.min(240, parseFloat(minutos) || IQ_SESSION_MIN));
+  if (!kg || !s || !min) return 0;
+  const porSesion = (IQ_TRAIN_MET - 1) * 3.5 * kg / 200 * min;
+  return Math.round(porSesion * s / 7);
+}
+
 // Cálculo de GET
 function calcularGET(tmb = null) {
   if (!tmb) {
@@ -3065,12 +3110,22 @@ function calcularGET(tmb = null) {
     if (tmbVal === '--') return;
     tmb = parseFloat(tmbVal);
   }
-  
+
   const actividad = document.querySelector('input[name="actividad"]:checked');
   if (actividad) {
-    const get = tmb * parseFloat(actividad.value);
+    const pesoAct  = parseFloat(document.getElementById('peso')?.value) || 0;
+    const sesiones = document.querySelector('input[name="dias-entreno"]:checked')?.value;
+    const minutos  = document.querySelector('input[name="duracion-sesion"]:checked')?.value;
+    const kcalEnt  = kcalEntrenoDia(pesoAct, sesiones, minutos);
+    const get = tmb * parseFloat(actividad.value) + kcalEnt;
     document.getElementById('get-val').textContent = Math.round(get);
-    
+    const desglose = document.getElementById('get-desglose');
+    if (desglose) {
+      desglose.textContent = sesiones
+        ? `${Math.round(tmb * parseFloat(actividad.value))} kcal de tu día a día + ${kcalEnt} kcal de entrenamiento`
+        : 'Elige tus días y duración de entreno para sumar ese gasto';
+    }
+
     // Proteína recomendada.
     // Si hay % de grasa → se calcula sobre MASA MAGRA (clínicamente más preciso:
     // no se dosifica proteína sobre la masa grasa). Si no, sobre peso total.
@@ -3117,7 +3172,9 @@ function calcularGET(tmb = null) {
     }
     
     // Agua recomendada (35ml/kg + ajuste por actividad)
-    const factorAgua = parseFloat(actividad.value) > 1.55 ? 40 : 35;
+    // El umbral se recalibró al separar NEAT y entreno: antes comparaba
+    // contra 1.55, un valor que ya no existe en esta escala.
+    const factorAgua = (parseFloat(actividad.value) >= 1.45 || kcalEnt >= 250) ? 40 : 35;
     const agua = Math.round(peso * factorAgua);
     document.getElementById('agua-val').textContent = agua;
   }
