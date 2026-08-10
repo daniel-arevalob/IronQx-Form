@@ -41,9 +41,12 @@
   .sec-header { background: #f0f0f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .sec-num { background: #d4a843 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .inp { background: #fff !important; color: #111 !important; border: 1px solid #bbb !important; }
-  .chk, .rdo { background: #f5f5f5 !important; color: #111 !important; border-color: #ccc !important; }
-  .chk.on, .rdo.on { background: #fff3d6 !important; border-color: #d4a843 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .chk-txt, .rdo-txt { color: #111 !important; }
+  .chk, .rdo, .opt { background: #f5f5f5 !important; color: #111 !important; border-color: #ccc !important; }
+  .chk.on, .rdo.on, .opt.on { background: #fff3d6 !important; border-color: #d4a843 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .chk-txt, .rdo-txt, .opt .opt-t { color: #111 !important; }
+  .opt .opt-d, .opt .opt-badge { color: #555 !important; }
+  .info-btn { display: none !important; }
+  .info-note { display: block !important; background: #fffbe6 !important; color: #555 !important; border-color: #d4a843 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .tip { background: #fffbe6 !important; border-color: #d4a843 !important; color: #555 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .pie { color: #888 !important; }
@@ -246,7 +249,6 @@ body {
   border-bottom: 1px solid var(--line);
 }
 hr.div { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
-.hint { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 9px; }
 
 /* ── SUB-SECCIONES ── */
 .sub-seccion { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 18px; overflow: hidden; }
@@ -315,6 +317,80 @@ hr.div { border: none; border-top: 1px solid var(--line); margin: 22px 0; }
   border-color: var(--gold); background: var(--gold);
   box-shadow: inset 0 0 0 3px var(--card2);
 }
+
+/* ── TARJETAS DE OPCIÓN (radios con jerarquía) ── */
+.opt-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; width: 100%; }
+.opt-grid.cols-4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+@media (max-width: 700px) {
+  .opt-grid { grid-template-columns: 1fr; }
+  .opt-grid.cols-4 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+.opt {
+  position: relative; display: flex; align-items: flex-start; gap: 11px;
+  padding: 13px; background: var(--card2);
+  border: 1px solid var(--line); border-radius: 12px;
+  cursor: pointer; user-select: none;
+  transition: border-color .16s, background .16s, transform .12s, box-shadow .16s;
+  -webkit-tap-highlight-color: transparent;
+}
+.opt:hover { border-color: var(--gold-brd); }
+.opt:active { transform: scale(.985); }
+.opt.on { border-color: var(--gold); background: var(--gold-bg); box-shadow: 0 0 0 1px var(--gold-brd); }
+.opt input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.opt-ico {
+  flex-shrink: 0; width: 34px; height: 34px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+  background: rgba(255,255,255,.045); border: 1px solid var(--line);
+  transition: background .16s, border-color .16s;
+}
+.opt.on .opt-ico { background: rgba(212,168,67,.14); border-color: var(--gold-brd); }
+.opt-body { display: block; flex: 1; min-width: 0; padding-right: 16px; }
+.opt-t { display: block; font-size: 13px; font-weight: 700; line-height: 1.2; color: var(--txt); transition: color .16s; }
+.opt.on .opt-t { color: var(--gold); }
+.opt-badge {
+  display: inline-block; margin-top: 7px; padding: 2.5px 8px; border-radius: 999px;
+  background: rgba(255,255,255,.05); border: 1px solid var(--line);
+  font-size: 9.5px; font-weight: 700; letter-spacing: .4px; white-space: nowrap;
+  color: var(--muted); transition: all .16s;
+}
+.opt.on .opt-badge { background: rgba(212,168,67,.13); border-color: var(--gold-brd); color: var(--gold); }
+.opt-d { display: block; margin-top: 7px; font-size: 10.5px; line-height: 1.45; color: var(--muted); }
+.opt-sm { padding: 12px; }
+.opt-sm .opt-t { font-size: 12px; }
+.opt-sm .opt-d { margin-top: 5px; font-size: 10px; }
+.opt-check {
+  position: absolute; top: 11px; right: 11px;
+  width: 17px; height: 17px; border-radius: 50%;
+  border: 1.5px solid var(--line); background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color .16s, background .16s;
+}
+.opt.on .opt-check { border-color: var(--gold); background: var(--gold); }
+.opt-check svg { opacity: 0; transition: opacity .16s; }
+.opt.on .opt-check svg { opacity: 1; }
+
+/* ── NOTA DESPLEGABLE (icono de información) ──── */
+.subsec-titulo.with-info { display: flex; align-items: center; gap: 8px; }
+.info-btn {
+  flex-shrink: 0; width: 17px; height: 17px; border-radius: 50%; padding: 0;
+  border: 1px solid var(--gold-brd); background: var(--gold-bg); color: var(--gold);
+  font-family: inherit; font-size: 10px; font-weight: 800; line-height: 1;
+  letter-spacing: 0; text-transform: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .15s; -webkit-tap-highlight-color: transparent;
+}
+.info-btn:hover { background: rgba(212,168,67,.2); }
+.info-btn[aria-expanded="true"] { background: var(--gold); color: #10121a; border-color: var(--gold); }
+.info-note {
+  margin: 0 0 14px; padding: 11px 13px;
+  background: var(--gold-bg); border: 1px solid var(--gold-brd);
+  border-left: 2px solid var(--gold); border-radius: 8px;
+  font-size: 11.5px; line-height: 1.55; color: var(--txt);
+  animation: infoIn .18s ease;
+}
+.info-note[hidden] { display: none; }
+.info-note b { color: var(--gold); font-weight: 700; }
+@keyframes infoIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
 /* ── ESCALA 1–10 ─────────────────────────────── */
 .escala { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; }
@@ -1237,14 +1313,48 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
 
       <!-- Duración de la sesión — entra en el cálculo del gasto energético -->
       <div class="subsec">
-        <div class="subsec-titulo">¿Cuánto dura una sesión típica? *</div>
-        <div class="radio-fila">
-          <label class="rdo"><input type="radio" name="duracion-sesion" value="35" required onchange="updateProgress();calcularGET()"><span>Menos de 45 min</span></label>
-          <label class="rdo"><input type="radio" name="duracion-sesion" value="55" onchange="updateProgress();calcularGET()"><span>45 a 60 min</span></label>
-          <label class="rdo"><input type="radio" name="duracion-sesion" value="75" onchange="updateProgress();calcularGET()"><span>60 a 90 min</span></label>
-          <label class="rdo"><input type="radio" name="duracion-sesion" value="100" onchange="updateProgress();calcularGET()"><span>Más de 90 min</span></label>
+        <div class="subsec-titulo with-info">
+          ¿Cuánto dura una sesión típica? *
+          <button type="button" class="info-btn" aria-expanded="false" aria-label="Qué contar en la duración" onclick="toggleInfo(this)">i</button>
         </div>
-        <div class="hint">Cuenta solo el tiempo entrenando, sin contar el traslado ni el vestuario.</div>
+        <div class="info-note" hidden>
+          Cuenta <b>solo el tiempo entrenando</b>, desde la primera serie hasta la última.
+          No incluyas el traslado, el vestuario ni el tiempo que pasas en el gimnasio sin entrenar.
+        </div>
+        <div class="opt-grid cols-4">
+          <label class="opt opt-sm">
+            <input type="radio" name="duracion-sesion" value="35" required onchange="updateProgress();calcularGET()">
+            <span class="opt-body">
+              <span class="opt-t">Menos de 45 min</span>
+              <span class="opt-d">Sesión corta y directa</span>
+            </span>
+            <span class="opt-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10121a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </label>
+          <label class="opt opt-sm">
+            <input type="radio" name="duracion-sesion" value="55" onchange="updateProgress();calcularGET()">
+            <span class="opt-body">
+              <span class="opt-t">45 a 60 min</span>
+              <span class="opt-d">Lo más habitual</span>
+            </span>
+            <span class="opt-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10121a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </label>
+          <label class="opt opt-sm">
+            <input type="radio" name="duracion-sesion" value="75" onchange="updateProgress();calcularGET()">
+            <span class="opt-body">
+              <span class="opt-t">60 a 90 min</span>
+              <span class="opt-d">Sesión larga</span>
+            </span>
+            <span class="opt-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10121a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </label>
+          <label class="opt opt-sm">
+            <input type="radio" name="duracion-sesion" value="100" onchange="updateProgress();calcularGET()">
+            <span class="opt-body">
+              <span class="opt-t">Más de 90 min</span>
+              <span class="opt-d">Volumen alto por sesión</span>
+            </span>
+            <span class="opt-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10121a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </label>
+        </div>
       </div>
 
       <hr class="div">
@@ -2065,17 +2175,56 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
       </div>
 
       <div class="subsec">
-        <div class="subsec-titulo">Tu día a día, sin contar el entrenamiento *</div>
-        <div class="radio-fila">
-          <label class="rdo"><input type="radio" name="actividad" value="1.25" onchange="calcularGET()"><span>Escritorio · menos de 5.000 pasos</span></label>
-          <label class="rdo"><input type="radio" name="actividad" value="1.35" onchange="calcularGET()"><span>Poco activo · 5.000 a 7.500 pasos</span></label>
-          <label class="rdo"><input type="radio" name="actividad" value="1.45" onchange="calcularGET()"><span>Activo · 7.500 a 10.000 pasos</span></label>
-          <label class="rdo"><input type="radio" name="actividad" value="1.6" onchange="calcularGET()"><span>Trabajo físico · más de 10.000 pasos</span></label>
+        <div class="subsec-titulo with-info">
+          Tu día a día, sin contar el entrenamiento *
+          <button type="button" class="info-btn" aria-expanded="false" aria-label="Por qué preguntamos esto" onclick="toggleInfo(this)">i</button>
         </div>
-        <div class="hint">
-          Aquí <b>no</b> cuentes tus sesiones de gimnasio: esas ya las registraste antes y se suman por separado.
+        <div class="info-note" hidden>
+          Aquí <b>no cuentes tus sesiones de gimnasio</b>: esas ya las registraste antes y se suman por separado.
           Piensa solo en cómo pasas el resto del día — trabajo, estudio, desplazamientos, tareas de casa.
           No es lo mismo estar sentado ocho horas que caminar todo el día, aunque los dos entrenen igual.
+        </div>
+        <div class="opt-grid">
+          <label class="opt">
+            <input type="radio" name="actividad" value="1.25" onchange="calcularGET()">
+            <span class="opt-ico">💺</span>
+            <span class="opt-body">
+              <span class="opt-t">Escritorio</span>
+              <span class="opt-badge">MENOS DE 5.000 PASOS</span>
+              <span class="opt-d">Sentado casi todo el día</span>
+            </span>
+            <span class="opt-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10121a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </label>
+          <label class="opt">
+            <input type="radio" name="actividad" value="1.35" onchange="calcularGET()">
+            <span class="opt-ico">🚶</span>
+            <span class="opt-body">
+              <span class="opt-t">Poco activo</span>
+              <span class="opt-badge">5.000 A 7.500 PASOS</span>
+              <span class="opt-d">Algo de pie, recados, trayectos a pie</span>
+            </span>
+            <span class="opt-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10121a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </label>
+          <label class="opt">
+            <input type="radio" name="actividad" value="1.45" onchange="calcularGET()">
+            <span class="opt-ico">👟</span>
+            <span class="opt-body">
+              <span class="opt-t">Activo</span>
+              <span class="opt-badge">7.500 A 10.000 PASOS</span>
+              <span class="opt-d">De pie buena parte del día</span>
+            </span>
+            <span class="opt-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10121a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </label>
+          <label class="opt">
+            <input type="radio" name="actividad" value="1.6" onchange="calcularGET()">
+            <span class="opt-ico">🧰</span>
+            <span class="opt-body">
+              <span class="opt-t">Trabajo físico</span>
+              <span class="opt-badge">MÁS DE 10.000 PASOS</span>
+              <span class="opt-d">Carga, obra, servicio, mucho movimiento</span>
+            </span>
+            <span class="opt-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10121a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+          </label>
         </div>
       </div>
 
@@ -2737,7 +2886,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('tab-nav-wrap').style.display = 'none';
   
   // Event listeners para checkboxes personalizados
-  document.querySelectorAll('.chk input, .rdo input').forEach(input => {
+  document.querySelectorAll('.chk input, .rdo input, .opt input').forEach(input => {
     input.addEventListener('change', function() {
       updateCustomInputs();
       updateProgress();
@@ -3110,6 +3259,9 @@ function calcularGET(tmb = null) {
     if (tmbVal === '--') return;
     tmb = parseFloat(tmbVal);
   }
+  // Sin TMB válida no hay nada que calcular: sin esto el desglose llegaba a
+  // mostrarle "NaN kcal" al paciente.
+  if (!isFinite(tmb) || tmb <= 0) return;
 
   const actividad = document.querySelector('input[name="actividad"]:checked');
   if (actividad) {
@@ -3190,8 +3342,19 @@ function togglePEDs(show) {
 }
 
 // Actualizar inputs personalizados (checkboxes/radios)
+// Nota desplegable del icono ⓘ: cerrada por defecto, se abre al tocarla.
+function toggleInfo(btn) {
+  const sec = btn.closest('.subsec');
+  const note = sec ? sec.querySelector('.info-note') : null;
+  if (!note) return;
+  const abrir = note.hasAttribute('hidden');
+  if (abrir) note.removeAttribute('hidden');
+  else note.setAttribute('hidden', '');
+  btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+}
+
 function updateCustomInputs() {
-  document.querySelectorAll('.chk, .rdo').forEach(label => {
+  document.querySelectorAll('.chk, .rdo, .opt').forEach(label => {
     const input = label.querySelector('input');
     if (input.checked) {
       label.classList.add('on');
