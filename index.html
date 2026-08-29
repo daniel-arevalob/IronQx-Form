@@ -3626,14 +3626,16 @@ function _goalValue(goal) {
 
 async function cargarAsignacion() {
   if (!ASSIGNMENT_ID && !PATIENT_ID) return;
+  let httpStatus = 0;
   try {
     const q = `assignment=${encodeURIComponent(ASSIGNMENT_ID)}&pid=${encodeURIComponent(PATIENT_ID)}`;
     const res = await fetch(`${INTAKE_API_URL}?${q}`, {
       headers: { "Accept": "application/json" },
       cache: "no-store",
     });
+    httpStatus = res.status;
     const result = await res.json().catch(() => ({}));
-    if (!res.ok || !result.ok) throw new Error(result.error || "Asignacion no disponible");
+    if (!res.ok || !result.ok) throw new Error(result.error || `HTTP ${res.status}`);
 
     // Si se entro sin id valido, el servidor devuelve el que resolvio por
     // paciente: a partir de aqui el formulario queda vinculado.
@@ -3666,7 +3668,15 @@ async function cargarAsignacion() {
     } catch (_) {}
   } catch (error) {
     console.error("cargarAsignacion:", error);
-    toast("No pudimos vincular este formulario con tu perfil. Abre nuevamente la tarea desde IRONQx.", "error");
+    /* El mensaje anterior era el mismo para todo y sonaba a puerta cerrada: el
+       paciente creia que no podia continuar. El formulario funciona igual sin
+       vinculo —el envio sale por correo—, asi que cada caso dice lo suyo:
+       404 es "este enlace ya no tiene tarea abierta"; lo demas es conexion. */
+    const sinTarea = httpStatus === 404;
+    toast(sinTarea
+      ? "Este enlace ya no tiene una tarea abierta. Puedes completar el formulario igual: al enviarlo le llega a tu coach."
+      : "No pudimos conectar con tu perfil ahora. Puedes completar el formulario igual: al enviarlo le llega a tu coach.",
+      sinTarea ? "info" : "error");
   }
 }
 
