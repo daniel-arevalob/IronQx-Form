@@ -3435,15 +3435,28 @@ function updateProgress() {
   ]);
   const terms = document.getElementById('acepto-terminos');
 
-  let total = requiredFields.length + trackedRadioGroups.size + (terms ? 1 : 0);
-  let filled = requiredFields.reduce(
-    (count, input) => count + ((input.value || '').trim() !== '' ? 1 : 0),
-    0
-  );
-  trackedRadioGroups.forEach(name => {
-    if (document.querySelector(`input[type="radio"][name="${name}"]:checked`)) filled++;
+  /* Los campos que llegan de la ficha del coach salen de la cuenta entera
+     —numerador y denominador—, no solo del numerador: si contaran en el total
+     la barra nunca llegaria a 100 sin tocarlos. El formulario abria en 39%
+     con el paciente sin haber contestado nada. */
+  let total = 0;
+  let filled = 0;
+  requiredFields.forEach(input => {
+    const value = (input.value || '').trim();
+    if (input.dataset.autofill === '1' && value !== '') return;
+    total++;
+    if (value !== '') filled++;
   });
-  if (terms?.checked) filled++;
+  trackedRadioGroups.forEach(name => {
+    const marcado = document.querySelector(`input[type="radio"][name="${name}"]:checked`);
+    if (marcado?.dataset.autofill === '1') return;
+    total++;
+    if (marcado) filled++;
+  });
+  if (terms) {
+    total++;
+    if (terms.checked) filled++;
+  }
 
   const percent = total > 0 ? Math.round((filled / total) * 100) : 0;
   
@@ -3607,11 +3620,22 @@ let _assignmentReady = false;
 let _assignmentProgressTimer = null;
 let _lastSyncedProgress = -1;
 
+/* Lo que llega relleno desde la ficha del coach queda marcado: no es una
+   respuesta del paciente y no debe contar como avance. En cuanto el lo toca,
+   la marca se cae y el campo vuelve a la cuenta como cualquier otro. */
 function _setPrefill(id, value) {
   const el = document.getElementById(id);
   if (!el || el.value || value === null || value === undefined || value === "") return;
   el.value = String(value);
+  el.dataset.autofill = "1";
 }
+
+function _limpiarAutofill(event) {
+  const el = event?.target;
+  if (el?.dataset?.autofill) delete el.dataset.autofill;
+}
+document.addEventListener("input", _limpiarAutofill, true);
+document.addEventListener("change", _limpiarAutofill, true);
 
 function _goalValue(goal) {
   const normalized = String(goal || "").toLowerCase()
@@ -3653,7 +3677,10 @@ async function cargarAsignacion() {
     const goalValue = _goalValue(prefill.goal);
     if (goalValue && !document.querySelector('input[name="objetivo"]:checked')) {
       const goalInput = document.querySelector(`input[name="objetivo"][value="${goalValue}"]`);
-      if (goalInput) goalInput.checked = true;
+      if (goalInput) {
+        goalInput.checked = true;
+        goalInput.dataset.autofill = "1";
+      }
     }
 
     _assignmentReady = true;
