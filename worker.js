@@ -44,13 +44,20 @@ export default {
 
       // Una asignacion vinculada se guarda primero en la app. El correo queda
       // como copia de respaldo y no condiciona la recepcion del intake.
+      //
+      // El decir y el hacer no coincidian: si la app fallaba, esto abortaba el
+      // envio entero y el correo tampoco salia. Un hipo de app.ironqx.fit le
+      // costaba al paciente el formulario completo y un "Error al enviar" que
+      // solo podia resolver reintentando. Ahora se reintenta una vez y, si
+      // sigue cayendo, el intake se va por correo igual: se falla solo cuando
+      // no llega por ninguna via.
       let assignmentSaved = false;
       if (assignmentId || patientId) {
         const responseData = { ...data };
         delete responseData.assignmentId;
         delete responseData.patientId;
         delete responseData.hp;
-        const assignmentRes = await fetch(ASSIGNMENT_API_URL, {
+        const guardarAsignacion = () => fetch(ASSIGNMENT_API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -59,18 +66,25 @@ export default {
             patientId,
             response: responseData,
           }),
-        });
-        if (!assignmentRes.ok) {
-          console.error("Assignment save error:", assignmentRes.status, await assignmentRes.text());
-          throw new Error("ASSIGNMENT_SAVE_FAIL");
+        }).catch(() => null);
+
+        let assignmentRes = await guardarAsignacion();
+        if (!assignmentRes || !assignmentRes.ok) {
+          await new Promise(resolve => setTimeout(resolve, 700));
+          assignmentRes = await guardarAsignacion();
         }
-        const assignmentResult = await assignmentRes.json().catch(() => ({}));
-        if (assignmentResult.duplicate) {
-          return new Response(JSON.stringify({ success: true, duplicate: true }), {
-            headers: { "Content-Type": "application/json", ...CORS },
-          });
+        if (assignmentRes && assignmentRes.ok) {
+          const assignmentResult = await assignmentRes.json().catch(() => ({}));
+          if (assignmentResult.duplicate) {
+            return new Response(JSON.stringify({ success: true, duplicate: true }), {
+              headers: { "Content-Type": "application/json", ...CORS },
+            });
+          }
+          assignmentSaved = true;
+        } else {
+          const detalle = assignmentRes ? await assignmentRes.text().catch(() => "") : "sin respuesta";
+          console.error("Assignment save error:", assignmentRes ? assignmentRes.status : "network", detalle);
         }
-        assignmentSaved = true;
       }
 
       // Fallback robusto: usa contacto (extracción directa) o busca en campos normalizados
@@ -139,7 +153,7 @@ export default {
         throw new Error("RESEND_FAIL");
       }
 
-      return new Response(JSON.stringify({ success: true, emailSent: true }), {
+      return new Response(JSON.stringify({ success: true, emailSent: true, assignmentSaved }), {
         headers: { "Content-Type": "application/json", ...CORS },
       });
 
