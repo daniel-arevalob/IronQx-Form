@@ -404,7 +404,7 @@ function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, ch
       ])}
 
       <!-- 06–09 · ALIMENTOS SELECCIONADOS -->
-      ${Object.values(alimentos).some(arr => arr.length > 0) ? bloqueAlimentos(alimentos) : ""}
+      ${Object.values(alimentos).some(v => listaSegura(v).length > 0) ? bloqueAlimentos(alimentos) : ""}
 
       <!-- 10 · METABOLISMO -->
       ${bloque("10", "Metabolismo", "⚡", [
@@ -656,10 +656,23 @@ function fila(label, valor) {
   </tr>`;
 }
 
+/* El formulario manda listas. Si un dato llega con otra forma —texto suelto,
+   un numero, null— el .map reventaba y con el la peticion entera: el envio se
+   perdia y el paciente veia "Error al enviar" sin saber por que. Un dato con
+   forma rara puede costar su fila del correo; no el correo. */
+function listaSegura(value) {
+  if (Array.isArray(value))
+    return value.filter(v => v !== null && v !== undefined && String(v).trim() !== "");
+  if (value === null || value === undefined) return [];
+  const texto = String(value).trim();
+  return texto ? [texto] : [];
+}
+
 /** Fila con tags de colores. Escapa cada item (datos de usuario). */
 function tagRow(label, items, color) {
-  if (!items?.length) return "";
-  const tags = items.map(i =>
+  const lista = listaSegura(items);
+  if (!lista.length) return "";
+  const tags = lista.map(i =>
     `<span style="display:inline-block;margin:2px 3px 2px 0;padding:3px 10px;
       background:${color}18;border:1px solid ${color}55;border-radius:20px;
       font-size:11px;color:${color};font-weight:600">${esc(i)}</span>`
@@ -700,6 +713,7 @@ function bloqueAlimentos(alimentos) {
   };
 
   const categorias = Object.entries(alimentos)
+    .map(([cat, items]) => [cat, listaSegura(items)])
     .filter(([, items]) => items.length > 0)
     .map(([cat, items]) => {
       const color = colores[cat] || "#888";
