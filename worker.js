@@ -146,11 +146,17 @@ export default {
         // Log completo en Cloudflare (wrangler tail / dashboard), respuesta genérica al cliente.
         console.error("Resend error:", resendRes.status, err);
         if (assignmentSaved) {
-          return new Response(JSON.stringify({ success: true, emailSent: false }), {
+          return new Response(JSON.stringify({ success: true, emailSent: false, emailStatus: resendRes.status }), {
             headers: { "Content-Type": "application/json", ...CORS },
           });
         }
-        throw new Error("RESEND_FAIL");
+        // El codigo de Resend viaja en la respuesta: sin el, un fallo de correo
+        // solo se puede diagnosticar abriendo los logs del panel, y desde fuera
+        // todo se ve igual (500 generico). El texto para el paciente no cambia.
+        const fallo = new Error("RESEND_FAIL");
+        fallo.stage = "email";
+        fallo.status = resendRes.status;
+        throw fallo;
       }
 
       return new Response(JSON.stringify({ success: true, emailSent: true, assignmentSaved }), {
@@ -162,6 +168,8 @@ export default {
       return new Response(JSON.stringify({
         success: false,
         error: "No se pudo enviar el formulario. Intenta de nuevo en unos minutos.",
+        stage: err && err.stage ? err.stage : undefined,
+        status: err && err.status ? err.status : undefined,
       }), {
         status: 500,
         headers: { "Content-Type": "application/json", ...CORS },
