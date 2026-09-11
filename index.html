@@ -3619,6 +3619,41 @@ const LS_KEY = ASSIGNMENT_ID ? `ironqx-form-v1-${ASSIGNMENT_ID}` : "ironqx-form-
 let _assignmentReady = false;
 let _assignmentProgressTimer = null;
 let _lastSyncedProgress = -1;
+let _emailSubmissionDelivered = false;
+let _assignmentSubmissionSaved = false;
+
+async function guardarEnvioEnAsignacion(payload) {
+  if (!ASSIGNMENT_ID && !PATIENT_ID) return { ok: true, skipped: true };
+  const response = { ...payload };
+  delete response.assignmentId;
+  delete response.patientId;
+  delete response.hp;
+
+  let lastError = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await new Promise(resolve => setTimeout(resolve, 700 * attempt));
+    try {
+      const res = await fetch(INTAKE_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "submit",
+          assignmentId: ASSIGNMENT_ID || null,
+          patientId: PATIENT_ID || null,
+          response,
+        }),
+        keepalive: true,
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.ok) throw new Error(result.error || `HTTP ${res.status}`);
+      if (result.assignmentId) ASSIGNMENT_ID = result.assignmentId;
+      return result;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("No se pudo confirmar la asignacion");
+}
 
 /* Lo que llega relleno desde la ficha del coach queda marcado: no es una
    respuesta del paciente y no debe contar como avance. En cuanto el lo toca,
@@ -3982,15 +4017,28 @@ async function enviarFormulario() {
   const timeoutId = setTimeout(() => ctrl.abort(), 20000);
 
   try {
-    const res = await fetch(WORKER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: ctrl.signal,
-    });
+    if (!_emailSubmissionDelivered) {
+      const res = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: ctrl.signal,
+      });
 
-    const result = await res.json().catch(() => ({}));
-    if (!res.ok || !result.success) throw new Error(result.error || `Error ${res.status}`);
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.success) throw new Error(result.error || `Error ${res.status}`);
+      _emailSubmissionDelivered = true;
+      _assignmentSubmissionSaved = result.assignmentSaved === true || result.duplicate === true;
+    }
+
+    // El Worker envia el correo y normalmente guarda la asignacion. Esta
+    // confirmacion directa cubre Workers desactualizados, respuestas ambiguas
+    // y fallos transitorios: no se muestra exito hasta que la app conozca el
+    // estado `submitted`. Si hay que reintentar, el correo no se vuelve a mandar.
+    if ((ASSIGNMENT_ID || PATIENT_ID) && !_assignmentSubmissionSaved) {
+      await guardarEnvioEnAsignacion(payload);
+      _assignmentSubmissionSaved = true;
+    }
 
     // ── Éxito ────────────────────────────────────────────────────────────
     try { localStorage.removeItem(LS_KEY); } catch (_) {}
@@ -3998,10 +4046,15 @@ async function enviarFormulario() {
 
   } catch (err) {
     console.error("enviarFormulario:", err);
-    const msg = err.name === "AbortError"
-      ? "La conexión tardó demasiado. Revisa tu internet e intenta de nuevo."
-      : err.message;
-    toast(`❌ Error al enviar: ${msg}\n\nIntenta de nuevo o contacta directamente.`, "error");
+    const pendienteDeVincular = _emailSubmissionDelivered
+      && (ASSIGNMENT_ID || PATIENT_ID)
+      && !_assignmentSubmissionSaved;
+    const msg = pendienteDeVincular
+      ? "El formulario ya llegó por correo, pero falta vincularlo con tu perfil. Pulsa Enviar otra vez: solo reintentaremos la vinculación y el correo no se duplicará."
+      : err.name === "AbortError"
+        ? "La conexión tardó demasiado. Revisa tu internet e intenta de nuevo."
+        : err.message;
+    toast(pendienteDeVincular ? `⚠️ ${msg}` : `❌ Error al enviar: ${msg}\n\nIntenta de nuevo o contacta directamente.`, pendienteDeVincular ? "warning" : "error");
     if (btn) { btn.disabled = false; btn.innerHTML = originalHTML; }
   } finally {
     clearTimeout(timeoutId);
