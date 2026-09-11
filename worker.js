@@ -14,6 +14,7 @@ const CORS = {
   "Access-Control-Allow-Origin":  "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
+  "X-IronQx-Worker-Version": "20260911-schedules",
 };
 
 // ─── Entry point ─────────────────────────────────────────────────────────────
@@ -24,7 +25,7 @@ export default {
 
     try {
       const data = await request.json();
-      const { campos = {}, radios = {}, checks = {}, alimentos = {}, escalas = {}, contacto = {}, metadata = {} } = data;
+      const { campos = {}, radios = {}, checks = {}, alimentos = {}, escalas = {}, horarios = {}, contacto = {}, metadata = {} } = data;
       const assignmentId = validAssignmentId(data.assignmentId);
       // El paciente es la segunda via: si el id de asignacion no llego o no es
       // valido, el endpoint de la app resuelve la asignacion abierta por
@@ -97,7 +98,7 @@ export default {
       // solo omitimos el correo de confirmación al paciente (no perdemos el lead).
       const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailPaciente);
 
-      const emailHtml = buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, checks, alimentos, escalas });
+      const emailHtml = buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, checks, alimentos, escalas, horarios });
 
       // Email 1 · Aviso interno al coach con la ficha completa
       const emailCoach = {
@@ -247,6 +248,20 @@ const VAL_MAP = {
     casa:         "Casa",
     minimo:       "Equipamiento mínimo",
   },
+  comidas: {
+    "3": "3 comidas",
+    "4": "4 comidas",
+    "5": "5 comidas",
+    "6": "6 comidas",
+    ayuno: "Ayuno intermitente",
+  },
+  timing: {
+    manana: "Mañana (5-9 AM)",
+    mediodia: "Mediodía (12-2 PM)",
+    tarde: "Tarde (4-7 PM)",
+    noche: "Noche (7-10 PM)",
+    mixto: "Mixto (2 sesiones)",
+  },
 };
 
 // Mapas para selects de PEDs (value → texto legible)
@@ -267,7 +282,7 @@ function prettyVal(key, val) {
 //  PLANTILLA DE EMAIL
 // ═══════════════════════════════════════════════════════════════════════════
 
-function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, checks, alimentos, escalas }) {
+function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, checks, alimentos, escalas, horarios = {} }) {
   // Todos los accesores ESCAPAN por defecto:
   const c  = k => esc(campos[k] || "");                       // texto/número
   const r  = k => esc(radios[k] || "");                       // radio crudo (para comparaciones M/F, si/no)
@@ -276,6 +291,7 @@ function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, ch
 
   // Versiones escapadas de los datos de contacto para uso inline en el HTML
   const nombreH = esc(nombre), emailH = esc(emailPaciente), telH = esc(telefono);
+  const schedule = buildScheduleSummary(horarios);
 
   // IMC automático si hay datos (solo números → seguro)
   const imc = (() => {
@@ -453,7 +469,11 @@ function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, ch
       <!-- 13 · LOGÍSTICA -->
       ${bloque("13", "Logística del Plan", "📋", [
         fila("Frecuencia de comidas",  rp("comidas")),
-        fila("Horario entreno",        rp("timing")),
+        fila("Horarios de comida",     schedule.mealsText),
+        fila("Hora de entrenamiento",  schedule.trainingTime),
+        fila("Franja de entrenamiento", rp("timing")),
+        fila("Pre-entreno probable",   schedule.pre),
+        fila("Post-entreno probable",  schedule.post),
         fila("Estilo preparación",     rp("preparacion")),
         fila("Cheat meals",            c("Frecuencia deseada")),
         fila("Presupuesto semanal",    c("Presupuesto semanal alimentario (USD)")),
@@ -666,6 +686,48 @@ function listaSegura(value) {
   if (value === null || value === undefined) return [];
   const texto = String(value).trim();
   return texto ? [texto] : [];
+}
+
+function buildScheduleSummary(horarios) {
+  const source = horarios && typeof horarios === "object" ? horarios : {};
+  const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+  const meals = Object.entries(source)
+    .filter(([label, value]) => /^(Comida \d+|Primera ingesta|Última ingesta)$/i.test(label) && timePattern.test(String(value || "")))
+    .map(([label, value]) => ({ label, time: String(value), minutes: timeToMinutes(value) }))
+    .sort((a, b) => a.minutes - b.minutes);
+  const training = timePattern.test(String(source.Entrenamiento || ""))
+    ? { time: String(source.Entrenamiento), minutes: timeToMinutes(source.Entrenamiento) }
+    : null;
+
+  let pre = "";
+  let post = "";
+  if (training && meals.length) {
+    const before = meals.filter(meal => meal.minutes <= training.minutes).at(-1);
+    const after = meals.find(meal => meal.minutes >= training.minutes);
+    if (before) pre = `${esc(before.label)} · ${esc(before.time)} (${formatTimeDistance(training.minutes - before.minutes)} antes)`;
+    if (after) post = `${esc(after.label)} · ${esc(after.time)} (${formatTimeDistance(after.minutes - training.minutes)} después)`;
+  }
+
+  return {
+    mealsText: meals.map(meal => `${esc(meal.label)} · ${esc(meal.time)}`).join(" &nbsp;·&nbsp; "),
+    trainingTime: training ? esc(training.time) : "",
+    pre,
+    post,
+  };
+}
+
+function timeToMinutes(value) {
+  const [hours, minutes] = String(value).split(":").map(Number);
+  return (hours * 60) + minutes;
+}
+
+function formatTimeDistance(minutes) {
+  if (minutes === 0) return "misma hora";
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (!hours) return `${rest} min`;
+  if (!rest) return `${hours} h`;
+  return `${hours} h ${rest} min`;
 }
 
 /** Fila con tags de colores. Escapa cada item (datos de usuario). */

@@ -1053,6 +1053,91 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
   color: var(--muted);
   line-height: 1.6;
 }
+.schedule-panel {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(145deg, rgba(212,168,67,0.09), rgba(21,24,30,0.96) 48%);
+  border: 1px solid var(--gold-brd);
+  border-radius: 10px;
+}
+.schedule-panel[hidden], .meal-time-field[hidden] { display: none; }
+.schedule-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.schedule-panel-title {
+  color: var(--txt);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.schedule-panel-copy {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+.schedule-panel-badge {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--gold-bg);
+  border: 1px solid var(--gold-brd);
+  color: var(--gold);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.meal-times-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.meal-time-field, .training-time-field { min-width: 0; }
+.meal-time-label, .training-time-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+.schedule-time-input {
+  min-height: 42px;
+  color-scheme: dark;
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 750;
+}
+.training-time-row {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) 1fr;
+  align-items: end;
+  gap: 14px;
+  margin-top: 16px;
+}
+.training-time-hint {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+@media (max-width: 640px) {
+  .meal-times-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .meal-time-field.is-last-odd { grid-column: 1 / -1; }
+  .training-time-row { grid-template-columns: 1fr; }
+  .training-time-hint { min-height: 0; }
+}
 </style>
 <base target="_blank">
 </head>
@@ -2491,11 +2576,47 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
       <div class="subsec">
         <div class="subsec-titulo">Frecuencia de comidas preferida</div>
         <div class="radio-fila">
-          <label class="rdo"><input type="radio" name="comidas" value="3" onchange="updateProgress()"><span>3 comidas (tradicional)</span></label>
-          <label class="rdo"><input type="radio" name="comidas" value="4" onchange="updateProgress()"><span>4 comidas (con colación)</span></label>
-          <label class="rdo"><input type="radio" name="comidas" value="5" onchange="updateProgress()"><span>5 comidas (frecuentes)</span></label>
-          <label class="rdo"><input type="radio" name="comidas" value="6" onchange="updateProgress()"><span>6+ comidas (frecuentes)</span></label>
-          <label class="rdo"><input type="radio" name="comidas" value="ayuno" onchange="updateProgress()"><span>Ayuno intermitente</span></label>
+          <label class="rdo"><input type="radio" name="comidas" value="3" required onchange="actualizarHorariosComidas(); updateProgress()"><span>3 comidas (tradicional)</span></label>
+          <label class="rdo"><input type="radio" name="comidas" value="4" onchange="actualizarHorariosComidas(); updateProgress()"><span>4 comidas (con colación)</span></label>
+          <label class="rdo"><input type="radio" name="comidas" value="5" onchange="actualizarHorariosComidas(); updateProgress()"><span>5 comidas (frecuentes)</span></label>
+          <label class="rdo"><input type="radio" name="comidas" value="6" onchange="actualizarHorariosComidas(); updateProgress()"><span>6 comidas (frecuentes)</span></label>
+          <label class="rdo"><input type="radio" name="comidas" value="ayuno" onchange="actualizarHorariosComidas(); updateProgress()"><span>Ayuno intermitente</span></label>
+        </div>
+
+        <div class="schedule-panel" id="meal-times-panel" hidden>
+          <div class="schedule-panel-head">
+            <div>
+              <div class="schedule-panel-title" id="meal-times-title">Horarios habituales de comida</div>
+              <div class="schedule-panel-copy" id="meal-times-copy">Indica una hora aproximada de un día normal.</div>
+            </div>
+            <span class="schedule-panel-badge">Peri-entreno</span>
+          </div>
+          <div class="meal-times-grid" id="meal-times-grid">
+            <div class="meal-time-field" data-meal-row="1" hidden>
+              <label class="meal-time-label" for="meal-time-1">Comida 1</label>
+              <input type="time" class="inp schedule-time-input" id="meal-time-1" data-meal-time="1" onchange="updateProgress()">
+            </div>
+            <div class="meal-time-field" data-meal-row="2" hidden>
+              <label class="meal-time-label" for="meal-time-2">Comida 2</label>
+              <input type="time" class="inp schedule-time-input" id="meal-time-2" data-meal-time="2" onchange="updateProgress()">
+            </div>
+            <div class="meal-time-field" data-meal-row="3" hidden>
+              <label class="meal-time-label" for="meal-time-3">Comida 3</label>
+              <input type="time" class="inp schedule-time-input" id="meal-time-3" data-meal-time="3" onchange="updateProgress()">
+            </div>
+            <div class="meal-time-field" data-meal-row="4" hidden>
+              <label class="meal-time-label" for="meal-time-4">Comida 4</label>
+              <input type="time" class="inp schedule-time-input" id="meal-time-4" data-meal-time="4" onchange="updateProgress()">
+            </div>
+            <div class="meal-time-field" data-meal-row="5" hidden>
+              <label class="meal-time-label" for="meal-time-5">Comida 5</label>
+              <input type="time" class="inp schedule-time-input" id="meal-time-5" data-meal-time="5" onchange="updateProgress()">
+            </div>
+            <div class="meal-time-field" data-meal-row="6" hidden>
+              <label class="meal-time-label" for="meal-time-6">Comida 6</label>
+              <input type="time" class="inp schedule-time-input" id="meal-time-6" data-meal-time="6" onchange="updateProgress()">
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2507,6 +2628,14 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
           <label class="rdo"><input type="radio" name="timing" value="tarde" onchange="updateProgress()"><span>Tarde (4-7 PM)</span></label>
           <label class="rdo"><input type="radio" name="timing" value="noche" onchange="updateProgress()"><span>Noche (7-10 PM)</span></label>
           <label class="rdo"><input type="radio" name="timing" value="mixto" onchange="updateProgress()"><span>Mixto (2 sesiones)</span></label>
+        </div>
+
+        <div class="training-time-row">
+          <div class="training-time-field">
+            <label class="training-time-label" for="training-time">Hora habitual de inicio</label>
+            <input type="time" class="inp schedule-time-input" id="training-time" required onchange="updateProgress()">
+          </div>
+          <div class="training-time-hint">La hora exacta permite ubicar qué comida funciona como pre-entreno y cuál como post-entreno.</div>
         </div>
         
         <div class="timing-grid" style="margin-top: 16px;">
@@ -2877,6 +3006,7 @@ document.addEventListener('DOMContentLoaded', function() {
   updateTabInk();
   // Restaurar borrador ANTES del primer updateProgress (que sobrescribiría el guardado)
   restaurarBorrador();
+  actualizarHorariosComidas();
   updateProgress();
   cargarAsignacion().catch(() => {});
   
@@ -3373,6 +3503,43 @@ function updateCustomInputs() {
   });
 
   updateEscalaFeedback();
+}
+
+// Ajusta el número de horarios visibles a la frecuencia elegida. Los seis
+// inputs permanecen en el DOM para que el autoguardado conserve su estructura.
+function actualizarHorariosComidas() {
+  const seleccion = document.querySelector('input[name="comidas"]:checked')?.value || '';
+  const panel = document.getElementById('meal-times-panel');
+  const title = document.getElementById('meal-times-title');
+  const copy = document.getElementById('meal-times-copy');
+  const rows = Array.from(document.querySelectorAll('[data-meal-row]'));
+  if (!panel) return;
+
+  const esAyuno = seleccion === 'ayuno';
+  const cantidad = esAyuno ? 2 : Math.max(0, Math.min(6, parseInt(seleccion, 10) || 0));
+  panel.hidden = cantidad === 0;
+  if (title) title.textContent = esAyuno ? 'Ventana habitual de alimentación' : 'Horarios habituales de comida';
+  if (copy) copy.textContent = esAyuno
+    ? 'Indica cuándo realizas la primera y la última ingesta de tu ventana.'
+    : 'Indica una hora aproximada de un día normal; podrás aclarar variaciones al final.';
+
+  rows.forEach((row, index) => {
+    const visible = index < cantidad;
+    const input = row.querySelector('[data-meal-time]');
+    const label = row.querySelector('.meal-time-label');
+    row.hidden = !visible;
+    row.classList.remove('is-last-odd');
+    if (input) {
+      input.required = visible;
+      input.dataset.scheduleActive = visible ? '1' : '0';
+    }
+    if (label) {
+      label.textContent = esAyuno
+        ? (index === 0 ? 'Primera ingesta' : 'Última ingesta')
+        : `Comida ${index + 1}`;
+    }
+  });
+  if (cantidad % 2 === 1) rows[cantidad - 1]?.classList.add('is-last-odd');
 }
 
 // Muestra "N/10 · descriptor" bajo cada escala seleccionada
@@ -3936,7 +4103,29 @@ function recolectarDatos() {
     });
   }
 
-  // 7 · Metadata
+  // 7 · Horarios estructurados para el diseño del plan y la lectura peri-entreno.
+  const horarios = {};
+  const frecuencia = radios.comidas || '';
+  if (frecuencia) horarios['Frecuencia de comidas'] = frecuencia === 'ayuno' ? 'Ayuno intermitente' : `${frecuencia} comidas`;
+  document.querySelectorAll('[data-meal-time][data-schedule-active="1"]').forEach((input, index) => {
+    const hora = input.value.trim();
+    if (!hora) return;
+    const label = input.closest('[data-meal-row]')?.querySelector('.meal-time-label')?.textContent?.trim()
+      || `Comida ${index + 1}`;
+    horarios[label] = hora;
+  });
+  const trainingTime = document.getElementById('training-time')?.value.trim() || '';
+  if (trainingTime) horarios['Entrenamiento'] = trainingTime;
+  const timingLabels = {
+    manana: 'Mañana (5-9 AM)',
+    mediodia: 'Mediodía (12-2 PM)',
+    tarde: 'Tarde (4-7 PM)',
+    noche: 'Noche (7-10 PM)',
+    mixto: 'Mixto (2 sesiones)',
+  };
+  if (radios.timing) horarios['Franja de entrenamiento'] = timingLabels[radios.timing] || radios.timing;
+
+  // 8 · Metadata
   const metadata = {
     fecha:     new Date().toLocaleDateString("es-EC", {
       year: "numeric", month: "long", day: "numeric",
@@ -3945,13 +4134,13 @@ function recolectarDatos() {
     progreso:     document.getElementById("pb-pct")?.textContent || "0%",
   };
 
-  // 8 · Honeypot anti-spam (debe ir vacío; los bots lo rellenan)
+  // 9 · Honeypot anti-spam (debe ir vacío; los bots lo rellenan)
   const hp = document.getElementById("hp-website")?.value || "";
 
-  // 9 · Time-trap: ms transcurridos desde la carga (bots envían casi instantáneo)
+  // 10 · Time-trap: ms transcurridos desde la carga (bots envían casi instantáneo)
   metadata.fillMs = Date.now() - (window.__formLoadedAt || Date.now());
 
-  return { campos, radios, checks, alimentos, escalas, contacto, metadata, hp };
+  return { campos, radios, checks, alimentos, escalas, horarios, contacto, metadata, hp };
 }
 
 // ─── Función principal ────────────────────────────────────────────────────────
