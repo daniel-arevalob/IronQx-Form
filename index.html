@@ -4125,6 +4125,16 @@ function recolectarDatos() {
   };
   if (radios.timing) horarios['Franja de entrenamiento'] = timingLabels[radios.timing] || radios.timing;
 
+  // Compatibilidad con el Worker de correo anterior: ese despliegue ya sabe
+  // mostrar las observaciones de entrenamiento, aunque todavía no conozca el
+  // bloque `horarios`. La app elimina esta copia al renderizar para no repetirla.
+  const scheduleParts = Object.entries(horarios).map(([label, value]) => `${label}: ${value}`);
+  if (scheduleParts.length) {
+    const obsKey = 'Cualquier detalle extra que deba conocer sobre tu entrenamiento';
+    const scheduleFallback = `[HORARIOS PARA PLANIFICACIÓN] ${scheduleParts.join(' · ')}`;
+    campos[obsKey] = [campos[obsKey], scheduleFallback].filter(Boolean).join('\n\n');
+  }
+
   // 8 · Metadata
   const metadata = {
     fecha:     new Date().toLocaleDateString("es-EC", {

@@ -401,8 +401,8 @@ function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, ch
         c("Especifique la lesión activa") ? fila("Detalle lesión", c("Especifique la lesión activa")) : "",
         c("Lesiones pasadas relevantes (cirugías, fracturas, rehabilitaciones)") ?
           fila("Historial", c("Lesiones pasadas relevantes (cirugías, fracturas, rehabilitaciones)")) : "",
-        c("Cualquier detalle extra que deba conocer sobre tu entrenamiento") ?
-          fila("Observaciones", c("Cualquier detalle extra que deba conocer sobre tu entrenamiento")) : "",
+        cleanScheduleFallback(campos["Cualquier detalle extra que deba conocer sobre tu entrenamiento"]) ?
+          fila("Observaciones", esc(cleanScheduleFallback(campos["Cualquier detalle extra que deba conocer sobre tu entrenamiento"]))) : "",
       ])}
 
       <!-- 04 · SALUD -->
@@ -728,6 +728,12 @@ function formatTimeDistance(minutes) {
   if (!hours) return `${rest} min`;
   if (!rest) return `${hours} h`;
   return `${hours} h ${rest} min`;
+}
+
+function cleanScheduleFallback(value) {
+  const text = String(value || "");
+  const markerIndex = text.indexOf("[HORARIOS PARA PLANIFICACIÓN]");
+  return (markerIndex >= 0 ? text.slice(0, markerIndex) : text).trim();
 }
 
 /** Fila con tags de colores. Escapa cada item (datos de usuario). */
