@@ -3761,7 +3761,8 @@ const WORKER_URL = "https://ironqx-form.daniel-arevalo2709.workers.dev";
 const INTAKE_API_URL = "https://app.ironqx.fit/api/intake-assignment";
 const FORM_PARAMS = new URLSearchParams(window.location.search);
 const ASSIGNMENT_RAW = (FORM_PARAMS.get("assignment") || "").trim().toLowerCase();
-let ASSIGNMENT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(ASSIGNMENT_RAW)
+const ASSIGNMENT_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+let ASSIGNMENT_ID = ASSIGNMENT_UUID_RE.test(ASSIGNMENT_RAW)
   ? ASSIGNMENT_RAW
   : "";
 // Red de seguridad: si el enlace pierde el parametro de asignacion (marcador,
@@ -3782,7 +3783,34 @@ const RETURN_URL = (() => {
 })();
 
 // ─── Autoguardado local (anti-pérdida de datos en form largo) ───────────────
-const LS_KEY = ASSIGNMENT_ID ? `ironqx-form-v1-${ASSIGNMENT_ID}` : "ironqx-form-v1";
+function claveBorrador() {
+  if (ASSIGNMENT_ID) return `ironqx-form-v1-${ASSIGNMENT_ID}`;
+  if (PATIENT_ID) return `ironqx-form-v1-patient-${PATIENT_ID}`;
+  return "ironqx-form-v1";
+}
+
+let LS_KEY = claveBorrador();
+
+/* Si el enlace solo conserva el paciente, la app resuelve la asignación al
+   cargar. El borrador pasa entonces de la clave del paciente a la definitiva;
+   así nunca se mezcla con otro formulario abierto en el mismo teléfono. */
+function vincularAsignacion(id) {
+  const resolved = String(id || "").trim().toLowerCase();
+  if (!ASSIGNMENT_UUID_RE.test(resolved)) return;
+  const previousKey = LS_KEY;
+  ASSIGNMENT_ID = resolved;
+  const nextKey = claveBorrador();
+  if (previousKey === nextKey) return;
+  try {
+    const previous = JSON.parse(localStorage.getItem(previousKey) || "null");
+    const current = JSON.parse(localStorage.getItem(nextKey) || "null");
+    if (previous && (!current || Number(previous.ts || 0) >= Number(current.ts || 0))) {
+      localStorage.setItem(nextKey, JSON.stringify(previous));
+    }
+    localStorage.removeItem(previousKey);
+  } catch (_) { /* storage bloqueado: el formulario abierto conserva sus datos */ }
+  LS_KEY = nextKey;
+}
 let _assignmentReady = false;
 let _assignmentProgressTimer = null;
 let _lastSyncedProgress = -1;
@@ -3813,7 +3841,7 @@ async function guardarEnvioEnAsignacion(payload) {
       });
       const result = await res.json().catch(() => ({}));
       if (!res.ok || !result.ok) throw new Error(result.error || `HTTP ${res.status}`);
-      if (result.assignmentId) ASSIGNMENT_ID = result.assignmentId;
+      if (result.assignmentId) vincularAsignacion(result.assignmentId);
       return result;
     } catch (error) {
       lastError = error;
@@ -3873,7 +3901,7 @@ async function cargarAsignacion() {
 
     // Si se entro sin id valido, el servidor devuelve el que resolvio por
     // paciente: a partir de aqui el formulario queda vinculado.
-    if (result.assignment?.id) ASSIGNMENT_ID = result.assignment.id;
+    if (result.assignment?.id) vincularAsignacion(result.assignment.id);
 
     const prefill = result.prefill || {};
     _setPrefill("c-nombre", prefill.name);
@@ -4001,7 +4029,7 @@ function restaurarBorrador() {
     updateCustomInputs();
     updateProgress();
   } catch (_) {}
-  toast("📝 Recuperamos tu progreso guardado. Continúa donde lo dejaste.", "info");
+  toast("Recuperamos tu progreso", "info");
 }
 
 // ─── Recolector de datos del formulario ─────────────────────────────────────
@@ -4279,7 +4307,7 @@ function toast(msg, tipo = "info") {
 // ─── Pantalla de éxito ───────────────────────────────────────────────────────
 function volverAApp() {
   if (window.parent !== window && ASSIGNMENT_ID) {
-    window.parent.postMessage({ type: "IRONQX_INTAKE_SUBMITTED", assignmentId: ASSIGNMENT_ID }, "*");
+    window.parent.postMessage({ type: "IRONQX_INTAKE_SUBMITTED", assignmentId: ASSIGNMENT_ID }, RETURN_URL);
     return;
   }
   window.location.href = RETURN_URL;
@@ -4320,7 +4348,7 @@ function pantallaExito() {
     </div>`;
 
   if (ASSIGNMENT_ID && window.parent !== window) {
-    window.parent.postMessage({ type: "IRONQX_INTAKE_SUBMITTED", assignmentId: ASSIGNMENT_ID }, "*");
+    window.parent.postMessage({ type: "IRONQX_INTAKE_SUBMITTED", assignmentId: ASSIGNMENT_ID }, RETURN_URL);
   }
 
   // Scroll suave al inicio del panel
