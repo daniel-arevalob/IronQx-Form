@@ -1132,7 +1132,19 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
   font-size: 11px;
   line-height: 1.45;
 }
+/* Horario de entrenamiento: una segunda hora cuando cambia según el día o
+   hay doble sesión, y la franja deducida de la hora, no elegida aparte. */
+.training-time-row.has-second { grid-template-columns: minmax(0, 170px) minmax(0, 170px) 1fr; }
+.training-time-field[hidden] { display: none; }
+.training-time-hint b { color: var(--gold); font-weight: 800; }
+/* Un grupo de opciones obligatorio sin contestar, al intentar enviar. */
+.subsec.grupo-invalido > .radio-fila,
+.subsec.grupo-invalido > .opt-grid,
+.subsec.grupo-invalido > .escala { outline: 1px solid var(--red); outline-offset: 6px; border-radius: 10px; }
+.grupo-error { margin-top: 10px; color: var(--red); font-size: 11.5px; font-weight: 700; }
 @media (max-width: 640px) {
+  .training-time-row.has-second { grid-template-columns: 1fr 1fr; }
+  .training-time-row.has-second .training-time-hint { grid-column: 1 / -1; }
   .meal-times-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .meal-time-field.is-last-odd { grid-column: 1 / -1; }
   .training-time-row { grid-template-columns: 1fr; }
@@ -1387,10 +1399,14 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
       <div class="subsec">
         <div class="subsec-titulo">Días de entrenamiento por semana *</div>
         <div class="radio-fila">
-          <label class="rdo"><input type="radio" name="dias-entreno" value="3" required onchange="updateProgress();calcularGET()"><span>3 días</span></label>
-          <label class="rdo"><input type="radio" name="dias-entreno" value="4" onchange="updateProgress();calcularGET()"><span>4 días</span></label>
-          <label class="rdo"><input type="radio" name="dias-entreno" value="5" onchange="updateProgress();calcularGET()"><span>5 días</span></label>
-          <label class="rdo"><input type="radio" name="dias-entreno" value="6" onchange="updateProgress();calcularGET()"><span>6 días</span></label>
+          <label class="rdo"><input type="radio" name="dias-entreno" value="0" required onchange="ajustarPreguntasEntreno();updateProgress();calcularGET()"><span>Aún no entreno</span></label>
+          <label class="rdo"><input type="radio" name="dias-entreno" value="1" onchange="ajustarPreguntasEntreno();updateProgress();calcularGET()"><span>1 día</span></label>
+          <label class="rdo"><input type="radio" name="dias-entreno" value="2" onchange="ajustarPreguntasEntreno();updateProgress();calcularGET()"><span>2 días</span></label>
+          <label class="rdo"><input type="radio" name="dias-entreno" value="3" onchange="ajustarPreguntasEntreno();updateProgress();calcularGET()"><span>3 días</span></label>
+          <label class="rdo"><input type="radio" name="dias-entreno" value="4" onchange="ajustarPreguntasEntreno();updateProgress();calcularGET()"><span>4 días</span></label>
+          <label class="rdo"><input type="radio" name="dias-entreno" value="5" onchange="ajustarPreguntasEntreno();updateProgress();calcularGET()"><span>5 días</span></label>
+          <label class="rdo"><input type="radio" name="dias-entreno" value="6" onchange="ajustarPreguntasEntreno();updateProgress();calcularGET()"><span>6 días</span></label>
+          <label class="rdo"><input type="radio" name="dias-entreno" value="7" onchange="ajustarPreguntasEntreno();updateProgress();calcularGET()"><span>7 días</span></label>
         </div>
       </div>
 
@@ -1399,7 +1415,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
       <!-- Duración de la sesión — entra en el cálculo del gasto energético -->
       <div class="subsec">
         <div class="subsec-titulo with-info">
-          ¿Cuánto dura una sesión típica? *
+          <span id="dur-pregunta">¿Cuánto dura una sesión típica? *</span>
           <button type="button" class="info-btn" aria-expanded="false" aria-label="Qué contar en la duración" onclick="toggleInfo(this)">i</button>
         </div>
         <div class="info-note" hidden>
@@ -1439,6 +1455,39 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
             </span>
             <span class="opt-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10121a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           </label>
+        </div>
+      </div>
+
+      <hr class="div">
+
+      <!-- Horario de entrenamiento. La hora exacta manda; la franja se deduce
+           de ella. Antes era una lista de franjas con huecos (9–12 h, 14–16 h),
+           solapes (las 7 PM en dos) y "en ayunas" mezclado con la hora, en la
+           sección de logística. -->
+      <div class="subsec" id="horario-entreno">
+        <div class="subsec-titulo with-info">
+          <span id="horario-pregunta">¿A qué hora empiezas a entrenar? *</span>
+          <button type="button" class="info-btn" aria-expanded="false" aria-label="Para qué sirve la hora" onclick="toggleInfo(this)">i</button>
+        </div>
+        <div class="info-note" hidden>
+          La hora en que <b>empiezas la sesión</b> un día normal. Con ella ubicamos qué comida funciona como pre-entreno y cuál como post-entreno.
+          Si cambia, indica la más habitual y la otra.
+        </div>
+        <div class="radio-fila">
+          <label class="rdo"><input type="radio" name="horario-tipo" value="fijo" required onchange="actualizarHorarioEntreno();updateProgress()"><span>Casi siempre a la misma hora</span></label>
+          <label class="rdo"><input type="radio" name="horario-tipo" value="variable" onchange="actualizarHorarioEntreno();updateProgress()"><span>Cambia según el día</span></label>
+          <label class="rdo"><input type="radio" name="horario-tipo" value="doble" onchange="actualizarHorarioEntreno();updateProgress()"><span>Algunos días entreno dos veces</span></label>
+        </div>
+        <div class="training-time-row" id="training-time-row">
+          <div class="training-time-field">
+            <label class="training-time-label" for="training-time" id="training-time-lbl">Hora de inicio</label>
+            <input type="time" class="inp schedule-time-input" id="training-time" required onchange="actualizarHorarioEntreno();updateProgress()">
+          </div>
+          <div class="training-time-field" id="training-time-2-wrap" hidden>
+            <label class="training-time-label" for="training-time-2" id="training-time-2-lbl">Otra hora habitual</label>
+            <input type="time" class="inp schedule-time-input" id="training-time-2" onchange="actualizarHorarioEntreno();updateProgress()">
+          </div>
+          <div class="training-time-hint" id="training-franja">Tu franja aparece al indicar la hora.</div>
         </div>
       </div>
 
@@ -2271,7 +2320,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
         </div>
         <div class="opt-grid">
           <label class="opt">
-            <input type="radio" name="actividad" value="1.25" onchange="calcularGET()">
+            <input type="radio" name="actividad" value="1.25" required onchange="calcularGET();updateProgress()">
             <span class="opt-ico">💺</span>
             <span class="opt-body">
               <span class="opt-t">Escritorio</span>
@@ -2281,7 +2330,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
             <span class="opt-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10121a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           </label>
           <label class="opt">
-            <input type="radio" name="actividad" value="1.35" onchange="calcularGET()">
+            <input type="radio" name="actividad" value="1.35" onchange="calcularGET();updateProgress()">
             <span class="opt-ico">🚶</span>
             <span class="opt-body">
               <span class="opt-t">Poco activo</span>
@@ -2291,7 +2340,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
             <span class="opt-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10121a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           </label>
           <label class="opt">
-            <input type="radio" name="actividad" value="1.45" onchange="calcularGET()">
+            <input type="radio" name="actividad" value="1.45" onchange="calcularGET();updateProgress()">
             <span class="opt-ico">👟</span>
             <span class="opt-body">
               <span class="opt-t">Activo</span>
@@ -2301,7 +2350,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
             <span class="opt-check"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#10121a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
           </label>
           <label class="opt">
-            <input type="radio" name="actividad" value="1.6" onchange="calcularGET()">
+            <input type="radio" name="actividad" value="1.6" onchange="calcularGET();updateProgress()">
             <span class="opt-ico">🧰</span>
             <span class="opt-body">
               <span class="opt-t">Trabajo físico</span>
@@ -2325,11 +2374,11 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
             <input type="number" class="inp" id="fcmax" placeholder="--" readonly>
           </div>
           <div class="campo">
-            <label class="lbl">Zona aeróbica (60-70%)</label>
+            <label class="lbl">Zona 2 · base aeróbica (60-70%)</label>
             <input type="text" class="inp" id="zonaaerobica" placeholder="--" readonly>
           </div>
           <div class="campo">
-            <label class="lbl">Zona quema grasa (70-80%)</label>
+            <label class="lbl">Zona 3 · tempo (70-80%)</label>
             <input type="text" class="inp" id="zonaquemagrasa" placeholder="--" readonly>
           </div>
         </div>
@@ -2574,7 +2623,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
     </div>
     <div class="sec-body">
       <div class="subsec">
-        <div class="subsec-titulo">Frecuencia de comidas preferida</div>
+        <div class="subsec-titulo">Frecuencia de comidas preferida *</div>
         <div class="radio-fila">
           <label class="rdo"><input type="radio" name="comidas" value="3" required onchange="actualizarHorariosComidas(); updateProgress()"><span>3 comidas (tradicional)</span></label>
           <label class="rdo"><input type="radio" name="comidas" value="4" onchange="actualizarHorariosComidas(); updateProgress()"><span>4 comidas (con colación)</span></label>
@@ -2621,28 +2670,13 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
       </div>
 
       <div class="subsec">
-        <div class="subsec-titulo">Timing nutricional - Horario de entrenamiento</div>
-        <div class="radio-fila">
-          <label class="rdo"><input type="radio" name="timing" value="manana" onchange="updateProgress()"><span>Mañana (5-9 AM) en ayunas</span></label>
-          <label class="rdo"><input type="radio" name="timing" value="mediodia" onchange="updateProgress()"><span>Mediodía (12-2 PM)</span></label>
-          <label class="rdo"><input type="radio" name="timing" value="tarde" onchange="updateProgress()"><span>Tarde (4-7 PM)</span></label>
-          <label class="rdo"><input type="radio" name="timing" value="noche" onchange="updateProgress()"><span>Noche (7-10 PM)</span></label>
-          <label class="rdo"><input type="radio" name="timing" value="mixto" onchange="updateProgress()"><span>Mixto (2 sesiones)</span></label>
-        </div>
-
-        <div class="training-time-row">
-          <div class="training-time-field">
-            <label class="training-time-label" for="training-time">Hora habitual de inicio</label>
-            <input type="time" class="inp schedule-time-input" id="training-time" required onchange="updateProgress()">
-          </div>
-          <div class="training-time-hint">La hora exacta permite ubicar qué comida funciona como pre-entreno y cuál como post-entreno.</div>
-        </div>
-        
-        <div class="timing-grid" style="margin-top: 16px;">
-          <div class="timing-card">
-            <div class="timing-header">🌅 Pre-entreno</div>
+        <div class="subsec-titulo">Comidas alrededor del entreno</div>
+        <div class="tip" style="margin-bottom:14px">La hora de entrenamiento se indica en la sección 03 (Entrenamiento). Aquí, qué prefieres comer antes y después.</div>
+        <div class="timing-grid">
+          <div class="timing-card" data-grupo="Antes de entrenar prefiere">
+            <div class="timing-header">🌅 Antes de entrenar</div>
             <div class="timing-body">
-              ¿Qué prefiere consumir antes de entrenar?
+              Marca lo que prefieres (puede ser más de una).
               <div class="grid-checks c1" style="margin-top: 8px;">
                 <label class="chk"><input type="checkbox" onchange="updateProgress()"><span class="chk-txt">Comida completa (2-3h antes)</span></label>
                 <label class="chk"><input type="checkbox" onchange="updateProgress()"><span class="chk-txt">Snack ligero (1h antes)</span></label>
@@ -2651,10 +2685,10 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
               </div>
             </div>
           </div>
-          <div class="timing-card">
-            <div class="timing-header">🌆 Post-entreno</div>
+          <div class="timing-card" data-grupo="Después de entrenar prefiere">
+            <div class="timing-header">🌆 Después de entrenar</div>
             <div class="timing-body">
-              ¿Qué prefiere consumir después de entrenar?
+              Marca lo que prefieres (puede ser más de una).
               <div class="grid-checks c1" style="margin-top: 8px;">
                 <label class="chk"><input type="checkbox" onchange="updateProgress()"><span class="chk-txt">Shake de proteína + carbs</span></label>
                 <label class="chk"><input type="checkbox" onchange="updateProgress()"><span class="chk-txt">Comida completa (1h después)</span></label>
@@ -3007,6 +3041,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Restaurar borrador ANTES del primer updateProgress (que sobrescribiría el guardado)
   restaurarBorrador();
   actualizarHorariosComidas();
+  actualizarHorarioEntreno();
+  ajustarPreguntasEntreno();
   updateProgress();
   cargarAsignacion().catch(() => {});
   
@@ -3021,6 +3057,14 @@ document.addEventListener('DOMContentLoaded', function() {
       updateCustomInputs();
       updateProgress();
     });
+  });
+
+  // Un grupo marcado en rojo se limpia en cuanto se elige una opción.
+  document.addEventListener('change', function(e) {
+    if (e.target && e.target.type === 'radio' && e.target.checked) {
+      const sub = e.target.closest('.subsec');
+      if (sub && sub.classList.contains('grupo-invalido')) marcarGrupo(sub, false);
+    }
   });
 
   // Validación inline: al salir de un campo .inp; limpia mientras corrige
@@ -3141,16 +3185,47 @@ function validarCampo(input) {
   return true;
 }
 
-// Valida todos los campos .inp requeridos. Devuelve el primer inválido (o null).
+/* Grupo de opciones obligatorio. Sin <form>, `required` en un radio no se
+   comprueba solo: se podía enviar sin días de entreno, objetivo o vida
+   diaria —con el gasto calculado a medias— aunque llevaran asterisco. */
+function marcarGrupo(sub, invalido) {
+  if (!sub) return;
+  sub.classList.toggle('grupo-invalido', invalido);
+  let msg = sub.querySelector(':scope > .grupo-error');
+  if (invalido && !msg) {
+    msg = document.createElement('div');
+    msg.className = 'grupo-error';
+    msg.textContent = '⚠ Elige una opción';
+    // Justo debajo de las opciones, no al final del bloque.
+    const opciones = sub.querySelector(':scope > .radio-fila, :scope > .opt-grid, :scope > .escala');
+    if (opciones) opciones.insertAdjacentElement('afterend', msg);
+    else sub.appendChild(msg);
+  } else if (!invalido && msg) msg.remove();
+}
+
+function validarGruposRequeridos() {
+  const invalidos = [];
+  const nombres = new Set(Array.from(document.querySelectorAll('input[type="radio"][required]')).map(r => r.name).filter(Boolean));
+  nombres.forEach(name => {
+    const radios = Array.from(document.querySelectorAll(`input[type="radio"][name="${name}"]`));
+    const sub = radios[0]?.closest('.subsec');
+    const ok = radios.some(r => r.checked);
+    marcarGrupo(sub, !ok);
+    if (!ok) invalidos.push(radios[0]);
+  });
+  return invalidos;
+}
+
+// Valida campos .inp y grupos requeridos. Devuelve el primer inválido del documento (o null).
 function validarTodoRequerido() {
   const reqs = document.querySelectorAll(
     'input.inp[required], select.inp[required], textarea.inp[required]'
   );
-  let primero = null;
-  reqs.forEach(inp => {
-    if (!validarCampo(inp) && !primero) primero = inp;
-  });
-  return primero;
+  const invalidos = [];
+  reqs.forEach(inp => { if (!validarCampo(inp)) invalidos.push(inp); });
+  invalidos.push(...validarGruposRequeridos());
+  invalidos.sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+  return invalidos[0] || null;
 }
 
 // Fija --fixed-h = alto de las barras fijas (progreso + tabs) para offsets de scroll/sticky
@@ -3540,6 +3615,74 @@ function actualizarHorariosComidas() {
     }
   });
   if (cantidad % 2 === 1) rows[cantidad - 1]?.classList.add('is-last-odd');
+}
+
+/* ── Horario de entrenamiento ───────────────────────────────────────────────
+   La franja sale de la hora: contiguas, sin huecos ni solapes. Se escribe
+   con "a" y sin guiones porque el correo convierte guiones en espacios. */
+const FRANJAS_ENTRENO = [
+  { desde: 4 * 60,  hasta: 7 * 60,  nombre: 'Madrugada' },
+  { desde: 7 * 60,  hasta: 12 * 60, nombre: 'Mañana' },
+  { desde: 12 * 60, hasta: 15 * 60, nombre: 'Mediodía' },
+  { desde: 15 * 60, hasta: 19 * 60, nombre: 'Tarde' },
+  { desde: 19 * 60, hasta: 22 * 60, nombre: 'Noche' },
+  { desde: 22 * 60, hasta: 28 * 60, nombre: 'Noche tardía' },
+];
+const HORARIO_TIPO_TXT = {
+  fijo: 'Casi siempre a la misma hora',
+  variable: 'Cambia según el día',
+  doble: 'Algunos días entreno dos veces',
+};
+
+function franjaDeHora(hhmm) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm || ''));
+  if (!m) return null;
+  let min = (+m[1]) * 60 + (+m[2]);
+  if (min < 4 * 60) min += 24 * 60;
+  const f = FRANJAS_ENTRENO.find(x => min >= x.desde && min < x.hasta);
+  if (!f) return null;
+  const hh = v => String(Math.floor(v / 60) % 24).padStart(2, '0') + ':00';
+  return { nombre: f.nombre, texto: `${f.nombre} (${hh(f.desde)} a ${hh(f.hasta)})` };
+}
+
+// "Tarde (15:00 a 19:00)"; con dos horas, las dos franjas.
+function textoFranjaEntreno() {
+  const tipo = document.querySelector('input[name="horario-tipo"]:checked')?.value || '';
+  const f1 = franjaDeHora(document.getElementById('training-time')?.value);
+  const f2 = tipo && tipo !== 'fijo' ? franjaDeHora(document.getElementById('training-time-2')?.value) : null;
+  if (!f1) return '';
+  if (!f2 || f2.nombre === f1.nombre) return f1.texto + (tipo === 'doble' && f2 ? ', dos sesiones' : '');
+  return `${f1.texto} y ${f2.texto}` + (tipo === 'doble' ? ', dos sesiones' : ', según el día');
+}
+
+function actualizarHorarioEntreno() {
+  const tipo = document.querySelector('input[name="horario-tipo"]:checked')?.value || '';
+  const segunda = tipo === 'variable' || tipo === 'doble';
+  const wrap2 = document.getElementById('training-time-2-wrap');
+  const in2 = document.getElementById('training-time-2');
+  const row = document.getElementById('training-time-row');
+  if (wrap2) wrap2.hidden = !segunda;
+  if (in2) in2.required = tipo === 'doble';
+  if (row) row.classList.toggle('has-second', segunda);
+  const l1 = document.getElementById('training-time-lbl');
+  const l2 = document.getElementById('training-time-2-lbl');
+  if (l1) l1.textContent = tipo === 'doble' ? 'Primera sesión' : tipo === 'variable' ? 'Hora más habitual' : 'Hora de inicio';
+  if (l2) l2.textContent = tipo === 'doble' ? 'Segunda sesión' : 'Otra hora (opcional)';
+  const hint = document.getElementById('training-franja');
+  if (hint) {
+    const txt = textoFranjaEntreno();
+    hint.innerHTML = txt ? `<span>Franja: <b>${txt}</b></span>` : 'Tu franja aparece al indicar la hora.';
+  }
+}
+
+// Si aún no entrena, las preguntas pasan a condicional: cuándo y cuánto podría.
+function ajustarPreguntasEntreno() {
+  const dias = document.querySelector('input[name="dias-entreno"]:checked')?.value;
+  const aun = dias === '0';
+  const dur = document.getElementById('dur-pregunta');
+  const hor = document.getElementById('horario-pregunta');
+  if (dur) dur.textContent = aun ? '¿Cuánto tiempo podrías dedicar por sesión? *' : '¿Cuánto dura una sesión típica? *';
+  if (hor) hor.textContent = aun ? '¿A qué hora podrías entrenar? *' : '¿A qué hora empiezas a entrenar? *';
 }
 
 // Muestra "N/10 · descriptor" bajo cada escala seleccionada
@@ -3970,9 +4113,31 @@ function camposPersistibles() {
     .filter(el => !el.readOnly && el.type !== "button" && el.type !== "submit" && el.type !== "file");
 }
 
+/* El borrador se guarda por CLAVE de campo (id o nombre+valor+texto) y no
+   por posición. Por posición, añadir o quitar un solo campo descartaba el
+   borrador entero de quien iba a medias. Los ids automáticos de wireLabels
+   (f-auto-N) también son posicionales y no cuentan como clave. */
+function claveCampo(el, vistos) {
+  let base;
+  if (el.id && !/^f-auto-\d+$/.test(el.id)) base = '#' + el.id;
+  else {
+    const envoltura = el.closest('.chk, .rdo, .opt, .escala-item, .campo');
+    const txt = (envoltura ? envoltura.textContent : '').trim().replace(/\s+/g, ' ').slice(0, 60);
+    base = (el.name || el.tagName.toLowerCase()) + '|' + (el.type === 'checkbox' || el.type === 'radio' ? el.value : '') + '|' + txt;
+  }
+  const n = (vistos[base] = (vistos[base] || 0) + 1);
+  return n > 1 ? base + '~' + n : base;
+}
+
+/* Claves del formulario anterior (borradores v2, por posición), sacadas de
+   su DOM real. Permiten recuperar esos borradores campo a campo. */
+const CLAVES_BORRADOR_V2 = ["#hp-website", "#c-nombre", "#c-telefono", "#c-email", "input||Ciudad", "#fecha-nac", "input||Ocupación / Profesión", "#estatura", "#peso", "#sexo", "somatotipo|ectomorfo|Ectomorfo (delgado, difícil ganar peso)", "somatotipo|mesomorfo|Mesomorfo (atlético, gana/pierde fácil)", "somatotipo|endomorfo|Endomorfo (tendencia a acumular grasa)", "#grasa-corp", "#cintura", "#cadera", "nivel-experiencia|principiante|🌱 Principiante", "nivel-experiencia|intermedio|⚡ Intermedio", "nivel-experiencia|avanzado|🔥 Avanzado", "dias-entreno|3|3 días", "dias-entreno|4|4 días", "dias-entreno|5|5 días", "dias-entreno|6|6 días", "duracion-sesion|35|Menos de 45 min Sesión corta y directa", "duracion-sesion|55|45 a 60 min Lo más habitual", "duracion-sesion|75|60 a 90 min Sesión larga", "duracion-sesion|100|Más de 90 min Volumen alto por sesión", "equipamiento|gym_completo|🏢 Gym completo", "equipamiento|gym_basico|🏠 Gym básico", "equipamiento|casa_mancuernas|🔩 Casa con mancuernas", "equipamiento|peso_corporal|🤸 Solo peso corporal", "input||Nombre del gimnasio (si aplica)", "lesion-activa|rodilla|🦵 Rodilla", "lesion-activa|hombro|💪 Hombro", "lesion-activa|lumbar|🔙 Lumbar", "lesion-activa|codo|🦾 Codo", "#lesion-ninguna", "#lesion-otra", "#lesion-especifica", "#historial-lesiones", "#obs-entrenamiento", "input|on|Diabetes Tipo 1", "input|on|Diabetes Tipo 2", "input|on|Hipertensión", "input|on|Hipotiroidismo", "input|on|Hipertiroidismo", "input|on|Síndrome de Cushing", "input|on|Síndrome de Ovario Poliquístico", "input|on|Dislipidemia", "input|on|Enfermedad renal crónica", "input|on|Enfermedad hepática", "input|on|Gota", "input|on|Osteoporosis", "input|on|Anemia", "input|on|Trastorno alimenticio (historial)", "input|on|Ninguna de las anteriores", "textarea||Lista de medicamentos / suplementos y dosis", "input|on|🥜 Cacahuates/Maní", "input|on|🦐 Mariscos", "input|on|🥛 Lácteos", "input|on|🌾 Gluten/Trigo", "input|on|🥚 Huevo", "input|on|🌱 Soja", "input|on|🐟 Pescado", "input|on|🍎 Frutas cítricas", "input|on|🥜 Nueces/Almendras", "input|on|🍅 Solanáceas", "input|on|🍯 Miel/Abeja", "input|on|Otras (especificar)", "input|on|Hinchazón post-comida", "input|on|Reflujo ácido", "input|on|Estreñimiento crónico", "input|on|Diarrea frecuente", "input|on|Dolor abdominal", "input|on|Náuseas frecuentes", "input|on|Intolerancia a lácteos", "input|on|Intolerancia a gluten", "input|on|Flatulencia excesiva", "input|on|Sensación de saciedad temprana", "input|on|Ninguno", "dieta|omnivoro|Omnívoro (todo)", "dieta|flexitariano|Flexitariano", "dieta|vegetariano|Vegetariano", "dieta|vegano|Vegano", "dieta|pescetariano|Pescetariano", "dieta|cetogenica|Cetogénica", "dieta|paleo|Paleo", "dieta|otra|Otra específica", "input|on|Carne roja", "input|on|Carne de cerdo", "input|on|Pollo/Pavo", "input|on|Pescado", "input|on|Mariscos", "input|on|Huevos", "input|on|Lácteos", "input|on|Gluten", "input|on|Soja", "input|on|Azúcar añadida", "input|on|Alcohol", "input|on|Cafeína", "input|on|Yogurt griego (bajo/medio en grasa)", "input|on|Queso fresco / Panela", "input|on|Requesón / Cuajada", "input|on|Leche descremada", "input|on|Kéfir", "input|on|Huevo entero", "input|on|Claras de huevo", "input|on|Mix (1 yema + 3 claras)", "input|on|Pechuga de pollo", "input|on|Muslo de pollo sin piel", "input|on|Pavo (pechuga o filete)", "input|on|Pollo enlatado (agua)", "input|on|Carne molida de res (magra)", "input|on|Carne molida de res (regular)", "input|on|Filete / Lomo de res", "input|on|Lomo / Chuleta de cerdo", "input|on|Tilapia", "input|on|Merluza", "input|on|Robalo", "input|on|Bacalao", "input|on|Lenguado", "input|on|Corvina", "input|on|Panga/Filete de basa", "input|on|Surimi (imitación cangrejo)", "input|on|Salmón fresco", "input|on|Salmón enlatado", "input|on|Atún fresco", "input|on|Atún enlatado en agua", "input|on|Atún enlatado en aceite", "input|on|Sardina enlatada", "input|on|Caballa", "input|on|Trucha", "input|on|Camarón", "input|on|Langostino", "input|on|Calamar", "input|on|Pulpo", "input|on|Mejillones", "input|on|Whey Protein (concentrado)", "input|on|Whey Isolate", "input|on|Caseína", "input|on|Proteína vegana (arveja/arroz)", "input|on|Proteína de soja", "input|on|Claras de huevo en polvo", "input|on|Bebidas RTD (listas para tomar)", "input|on|Tofu firme", "input|on|Tempeh", "input|on|Seitán", "input|on|Edamames", "input|on|Texturizado de soja (TSP)", "input|on|Papa (blanca o amarilla)", "input|on|Camote / Batata", "input|on|Yuca / Mandioca", "input|on|Oca / Melloco", "input|on|Zanahoria cocida / Remolacha", "input|on|Arroz blanco", "input|on|Arroz integral", "input|on|Avena en hojuelas", "input|on|Avena en polvo / harina de avena", "input|on|Crema de arroz", "input|on|Pasta de trigo (blanca o integral)", "input|on|Pasta de legumbres (lenteja/garbanzo)", "input|on|Pasta / Fideos sin gluten (arroz/maíz)", "input|on|Pan de masa madre / Ezekiel", "input|on|Pan integral", "input|on|Pan blanco", "input|on|Tortillas / Wraps (trigo o maíz)", "input|on|Arepas", "input|on|Galletas / Tostadas de arroz", "input|on|Quinoa", "input|on|Cuscús", "input|on|Cebada", "input|on|Bulgur", "input|on|Mijo", "input|on|Trigo sarraceno", "input|on|Frutilla / Fresa", "input|on|Mora (andina)", "input|on|Frambuesa", "input|on|Arándano", "input|on|Manzana verde", "input|on|Pera", "input|on|Ciruela", "input|on|Cereza", "input|on|Tomate de árbol", "input|on|Uva verde (poca cantidad)", "input|on|Limón (uso culinario)", "input|on|Plátano verde/guineo", "input|on|Naranja", "input|on|Mandarina", "input|on|Kiwi", "input|on|Melón", "input|on|Papaya (pequeña porción)", "input|on|Piña", "input|on|Granadilla", "input|on|Naranjilla", "input|on|Sandía", "input|on|Uva negra (moderada)", "input|on|Plátano maduro/banano", "input|on|Papaya madura", "input|on|Mango", "input|on|Uva madura (muchas)", "input|on|Dátiles", "input|on|Higos", "input|on|Pasas", "input|on|Membrillo", "input|on|Aguacate (fruta pero baja IG)", "input|on|Maltodextrina", "input|on|Dextrosa", "input|on|Bebidas isotónicas (Gatorade / Powerade)", "input|on|Gominolas dulces (haribo)", "input|on|Miel", "input|on|Jarabe de maple", "input|on|Azúcar blanca (uso específico)", "input|on|Aguacate / Palta (cualquier variedad)", "input|on|Aceite de oliva virgen extra", "input|on|Aceite de coco virgen / MCT", "input|on|Mantequilla / Ghee", "input|on|Almendras naturales", "input|on|Nueces (walnuts)", "input|on|Nueces de Brasil", "input|on|Macadamias", "input|on|Pistachos", "input|on|Castañas de cajú", "input|on|Mantequilla de maní natural", "input|on|Mantequilla de almendra / cajú", "input|on|Tahini (pasta de sésamo)", "input|on|Chía", "input|on|Lino (linaza)", "input|on|Calabaza (pepitas)", "input|on|Girasol", "input|on|Sésamo", "input|on|Cáñamo (hemp)", "input|on|Yema de huevo", "input|on|Queso cheddar", "input|on|Queso manchego", "input|on|Parmesano", "input|on|Mozzarella", "input|on|Crema de queso", "input|on|Aceite de pescado (suplemento)", "input|on|Krill oil", "input|on|Alga omega-3 (vegana)", "input|on|Espinaca", "input|on|Lechuga (romana / iceberg)", "input|on|Mix de hojas verdes", "input|on|Rúcula", "input|on|Kale", "input|on|Acelga", "input|on|Pepino", "input|on|Apio", "input|on|Brócoli", "input|on|Coliflor", "input|on|Calabacín", "input|on|Berenjena", "input|on|Champiñones", "input|on|Espárragos", "input|on|Judías verdes", "input|on|Zanahoria cruda", "input|on|Remolacha", "input|on|Pimiento (todos los colores)", "input|on|Tomate", "input|on|Cebolla", "input|on|Ajo", "input|on|Coles de Bruselas", "input|on|Repollo", "input|on|Nabo", "actividad|1.25|💺 Escritorio MENOS DE 5.000 PASOS Sentado casi todo el día", "actividad|1.35|🚶 Poco activo 5.000 A 7.500 PASOS Algo de pie, recados, tra", "actividad|1.45|👟 Activo 7.500 A 10.000 PASOS De pie buena parte del día", "actividad|1.6|🧰 Trabajo físico MÁS DE 10.000 PASOS Carga, obra, servicio,", "#fc-reposo", "input||Glucosa en ayunas (mg/dL)", "input||HbA1c (%)", "input||Colesterol total (mg/dL)", "input||HDL (mg/dL)", "input||LDL (mg/dL)", "input||Triglicéridos (mg/dL)", "input||TSH (mIU/L)", "input||Vitamina D (ng/mL)", "input||Testosterona total (ng/dL)", "input||Estradiol (pg/mL)", "energia|1|1Muy bajo", "energia|2|2Bajo", "energia|3|3", "energia|4|4", "energia|5|5Moderado", "energia|6|6", "energia|7|7", "energia|8|8Alto", "energia|9|9", "energia|10|10Excelente", "sueno|1|1Muy mala", "sueno|2|2Mala", "sueno|3|3", "sueno|4|4", "sueno|5|5Regular", "sueno|6|6", "sueno|7|7", "sueno|8|8Buena", "sueno|9|9", "sueno|10|10Excelente", "select||Horas de sueño promedio Seleccionar... Menos de 5 horas 5-6 ", "input|on|Dificultad para conciliar", "input|on|Despertares nocturnos", "input|on|Ronquidos / Apnea", "estres|1|1Ninguno", "estres|2|2Muy bajo", "estres|3|3", "estres|4|4", "estres|5|5Moderado", "estres|6|6", "estres|7|7", "estres|8|8Alto", "estres|9|9", "estres|10|10Muy alto", "objetivo|perdida_grasa|Pérdida de grasa corporal", "objetivo|ganancia_muscular|Ganancia de masa muscular", "objetivo|recomposicion|Recomposición corporal", "objetivo|mantenimiento|Mantenimiento/Performance", "objetivo|salud|Mejora de salud general", "input||Peso objetivo (kg)", "input||Plazo deseado (semanas)", "input||Motivación principal", "input|on|Conteo de calorías tradicional", "input|on|Dieta cetogénica", "input|on|Ayuno intermitente", "input|on|Dieta baja en carbohidratos", "input|on|Dieta alta en proteína", "input|on|Comidas por intercambio", "input|on|Planes de comida pre-hechos", "input|on|Apps de tracking (MyFitnessPal, etc.)", "input|on|Nunca he hecho dieta formal", "textarea||¿Qué funcionó mejor en el pasado? ¿Qué fue lo peor?", "compromiso|1|1Bajo", "compromiso|2|2", "compromiso|3|3", "compromiso|4|4", "compromiso|5|5Moderado", "compromiso|6|6", "compromiso|7|7", "compromiso|8|8", "compromiso|9|9", "compromiso|10|10Total", "comidas|3|3 comidas (tradicional)", "comidas|4|4 comidas (con colación)", "comidas|5|5 comidas (frecuentes)", "comidas|6|6 comidas (frecuentes)", "comidas|ayuno|Ayuno intermitente", "#meal-time-1", "#meal-time-2", "#meal-time-3", "#meal-time-4", "#meal-time-5", "#meal-time-6", "timing|manana|Mañana (5-9 AM) en ayunas", "timing|mediodia|Mediodía (12-2 PM)", "timing|tarde|Tarde (4-7 PM)", "timing|noche|Noche (7-10 PM)", "timing|mixto|Mixto (2 sesiones)", "#training-time", "input|on|Comida completa (2-3h antes)", "input|on|Snack ligero (1h antes)", "input|on|Solo café/pre-workout", "input|on|Nada (ayuno)", "input|on|Shake de proteína + carbs", "input|on|Comida completa (1h después)", "input|on|Solo proteína", "input|on|Nada especial (siguiente comida)", "preparacion|simple|Simple (recetas rápidas)", "preparacion|mealprep|Meal prep (batch cooking)", "preparacion|gourmet|Gourmet (no me importa el tiempo)", "preparacion|premade|Preparado/Compra lista", "select||Frecuencia deseada Seleccionar... Ninguna (estricto) 1x sema", "input||Alimentos \"trigger\" (que desencadenan atracones)", "select||Presupuesto semanal alimentario (USD) Seleccionar rango... E", "select||Tiempo disponible para cocinar (min/día) Seleccionar... 15 m", "input|on|Multivitamínico", "input|on|Vitamina D3", "input|on|Omega-3 / Aceite de pescado", "input|on|Magnesio", "input|on|Zinc", "input|on|Vitamina C", "input|on|Complejo B", "input|on|Calcio", "input|on|Hierro", "input|on|Vitamina K2", "input|on|Probióticos", "input|on|Fibra/Psyllium", "input|on|Creatina monohidratada", "input|on|Cafeína / Pre-workout", "input|on|Beta-alanina", "input|on|Citrulina malato", "input|on|BCAA / EAA", "input|on|Glutamina", "input|on|HMB", "input|on|Nitratos (remolacha)", "input|on|Electrolitos", "peds|no|No uso / Natural", "peds|si|Sí, actualmente", "peds|anterior|Usé anteriormente", "input|on|Testosterona (TRT/ciclos)", "input|on|Anabólicos orales (Dbol, Winny, etc.)", "input|on|Anabólicos inyectables (Deca, Tren, etc.)", "input|on|Peptidos (GH, IGF-1, etc.)", "input|on|SARMs (Ostarine, RAD140, etc.)", "input|on|EPO / Hematopoyéticos", "input|on|T3/T4 / Clenbuterol", "input|on|Insulina", "input|on|Otros (especificar)", "select||Duración del uso Seleccionar... Menos de 6 meses 6 meses - 1", "select||¿Monitoreo médico actual? Seleccionar... Sí, regular Ocasion", "textarea||Detalles adicionales / Esquema aproximado", "ciclo|regular|Ciclo regular (28-30 días)", "ciclo|irregular|Ciclo irregular", "ciclo|anticonceptivo|Uso anticonceptivo hormonal", "ciclo|menopausia|Menopausia", "ciclo|noaplica|No aplica", "textarea||¿Hay algo más que debamos saber?", "#acepto-terminos", "input||Firma digital (escriba su nombre completo) *", "#fecha-firma"];
+
 function guardarBorrador() {
   try {
     const els = camposPersistibles();
+    const vistos = {};
+    const keys = els.map(el => claveCampo(el, vistos));
     const data = els.map(el =>
       (el.type === "checkbox" || el.type === "radio") ? (el.checked ? 1 : 0) : el.value
     );
@@ -3980,7 +4145,7 @@ function guardarBorrador() {
        guardar que campos eran del coach, al volver se restauraban como si los
        hubiera contestado el paciente y la barra reaparecia en 39%. */
     const auto = els.map(el => (el.dataset.autofill === "1" ? 1 : 0));
-    localStorage.setItem(LS_KEY, JSON.stringify({ v: 2, ts: Date.now(), data, auto }));
+    localStorage.setItem(LS_KEY, JSON.stringify({ v: 3, ts: Date.now(), keys, data, auto }));
     flashGuardado();
   } catch (_) { /* storage lleno o bloqueado: ignorar */ }
 }
@@ -4001,11 +4166,20 @@ function restaurarBorrador() {
   if (!saved || !Array.isArray(saved.data)) return;
 
   const els = camposPersistibles();
-  if (saved.data.length !== els.length) return; // estructura cambió: descartar para no corromper
+  const vistos = {};
+  const clavesAhora = els.map(el => claveCampo(el, vistos));
+  // v3 trae sus claves; un v2 del formulario anterior, las de CLAVES_BORRADOR_V2.
+  const claves = saved.v === 3 && Array.isArray(saved.keys) && saved.keys.length === saved.data.length
+    ? saved.keys
+    : saved.data.length === CLAVES_BORRADOR_V2.length ? CLAVES_BORRADOR_V2 : null;
+  if (!claves) return; // ni claves ni estructura conocida: no se inventa nada
+  const indice = new Map(claves.map((k, i) => [k, i]));
 
-  const auto = Array.isArray(saved.auto) && saved.auto.length === els.length ? saved.auto : null;
+  const auto = Array.isArray(saved.auto) && saved.auto.length === saved.data.length ? saved.auto : null;
   let huboDatos = false;
-  els.forEach((el, i) => {
+  els.forEach((el, j) => {
+    const i = indice.get(clavesAhora[j]);
+    if (i === undefined) return; // campo nuevo: se queda vacío
     const val = saved.data[i];
     if (el.type === "checkbox" || el.type === "radio") {
       el.checked = !!val;
@@ -4053,8 +4227,8 @@ function recolectarDatos() {
     ["imc-display",     "IMC Calculado"],
     ["rc-cadera",       "Relación Cintura/Cadera"],
     ["fcmax",           "FC máxima estimada"],
-    ["zonaaerobica",    "Zona aeróbica (60-70%)"],
-    ["zonaquemagrasa",  "Zona quema grasa (70-80%)"],
+    ["zonaaerobica",    "Zona 2 · base aeróbica (60-70%)"],
+    ["zonaquemagrasa",  "Zona 3 · tempo (70-80%)"],
     ["tmb-val",         "Tasa Metabólica Basal"],
     ["get-val",         "Gasto Energético Total"],
     ["proteina-val",    "Proteína Recomendada"],
@@ -4075,6 +4249,11 @@ function recolectarDatos() {
   // Sexo también como radio
   const sexoEl = document.getElementById("sexo");
   if (sexoEl?.value) radios["sexo"] = sexoEl.value;
+  // La franja ya no se elige: se deduce de la hora. Viaja como texto legible
+  // en la clave de siempre (el correo la muestra tal cual).
+  const franjaTxt = textoFranjaEntreno();
+  if (franjaTxt) radios["timing"] = franjaTxt;
+  if (radios["horario-tipo"]) radios["horario-tipo"] = HORARIO_TIPO_TXT[radios["horario-tipo"]] || radios["horario-tipo"];
 
   // 3 · Checkboxes genéricos agrupados por subsección
   const checks = {};
@@ -4087,7 +4266,9 @@ function recolectarDatos() {
     const campoLbl = cb.closest(".campo")?.querySelector(".lbl")?.textContent?.trim().replace(/\s*\*+\s*$/, "");
     const seccion  = cb.closest(".sub-seccion, .subsec");
     const subsecTit = seccion?.querySelector(".sub-sec-titulo, .subsec-titulo")?.textContent?.trim();
-    const titulo   = campoLbl || subsecTit || "General";
+    // data-grupo separa lo que comparte subsección (antes y después del entreno).
+    const grupoLbl = cb.closest("[data-grupo]")?.dataset.grupo;
+    const titulo   = campoLbl || grupoLbl || subsecTit || "General";
     if (!checks[titulo]) checks[titulo] = [];
     checks[titulo].push(labelTxt);
   });
@@ -4144,14 +4325,12 @@ function recolectarDatos() {
   });
   const trainingTime = document.getElementById('training-time')?.value.trim() || '';
   if (trainingTime) horarios['Entrenamiento'] = trainingTime;
-  const timingLabels = {
-    manana: 'Mañana (5-9 AM)',
-    mediodia: 'Mediodía (12-2 PM)',
-    tarde: 'Tarde (4-7 PM)',
-    noche: 'Noche (7-10 PM)',
-    mixto: 'Mixto (2 sesiones)',
-  };
-  if (radios.timing) horarios['Franja de entrenamiento'] = timingLabels[radios.timing] || radios.timing;
+  const tipoHorario = document.querySelector('input[name="horario-tipo"]:checked')?.value || '';
+  const trainingTime2 = tipoHorario && tipoHorario !== 'fijo'
+    ? (document.getElementById('training-time-2')?.value.trim() || '') : '';
+  if (trainingTime2) horarios[tipoHorario === 'doble' ? 'Segunda sesión' : 'Otra hora de entrenamiento'] = trainingTime2;
+  if (tipoHorario) horarios['Horario de entrenamiento'] = HORARIO_TIPO_TXT[tipoHorario];
+  if (franjaTxt) horarios['Franja de entrenamiento'] = franjaTxt;
 
   // Compatibilidad con el Worker de correo anterior: ese despliegue ya sabe
   // mostrar las observaciones de entrenamiento, aunque todavía no conozca el

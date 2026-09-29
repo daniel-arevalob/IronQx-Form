@@ -242,11 +242,15 @@ const VAL_MAP = {
   },
   somatotipo: { ectomorfo: "Ectomorfo", mesomorfo: "Mesomorfo", endomorfo: "Endomorfo" },
   // (DUR_PED y MON_PED se usan aparte porque son campos select, no radios)
+  // Los valores que envía el formulario (casa_mancuernas, peso_corporal);
+  // casa/minimo quedan por fichas antiguas.
   equipamiento: {
-    gym_completo: "Gym completo",
-    gym_basico:   "Gym básico",
-    casa:         "Casa",
-    minimo:       "Equipamiento mínimo",
+    gym_completo:    "Gym completo",
+    gym_basico:      "Gym básico",
+    casa_mancuernas: "Casa con mancuernas",
+    peso_corporal:   "Solo peso corporal",
+    casa:            "Casa",
+    minimo:          "Equipamiento mínimo",
   },
   comidas: {
     "3": "3 comidas",
@@ -393,8 +397,9 @@ function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, ch
       <!-- 03 · ENTRENAMIENTO -->
       ${bloque("03", "Entrenamiento", "🏋️", [
         fila("Nivel",        rp("nivel-experiencia")),
-        fila("Días/semana",  c("Días/semana") || r("dias-entreno")),
+        fila("Días/semana",  c("Días/semana") || (r("dias-entreno") === "0" ? "Aún no entrena" : r("dias-entreno"))),
         fila("Duración sesión", rp("duracion-sesion")),
+        fila("Horario",      esc(horarios["Horario de entrenamiento"] || "")),
         fila("Equipamiento", rp("equipamiento")),
         fila("Gimnasio",     c("Nombre del gimnasio (si aplica)")),
         ch("Lesiones activas").length ? tagRow("Lesiones activas", ch("Lesiones activas"), "#d94f4f") : "",
@@ -427,8 +432,9 @@ function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, ch
         fila("Vida diaria (NEAT)",  rp("actividad")),
         fila("FC reposo",           c("FC en reposo (lpm)") ? c("FC en reposo (lpm)") + " lpm" : ""),
         fila("FC máxima",           c("FC máxima estimada") ? c("FC máxima estimada") + " lpm" : ""),
-        fila("Zona aeróbica",       c("Zona aeróbica (60-70%)")),
-        fila("Zona quema grasa",    c("Zona quema grasa (70-80%)")),
+        // Las fichas antiguas llegan con los nombres de antes.
+        fila("Zona 2 · base aeróbica", c("Zona 2 · base aeróbica (60-70%)") || c("Zona aeróbica (60-70%)")),
+        fila("Zona 3 · tempo",      c("Zona 3 · tempo (70-80%)") || c("Zona quema grasa (70-80%)")),
         fila("TMB estimada",        c("Tasa Metabólica Basal") ? c("Tasa Metabólica Basal") + " kcal/día" : ""),
         fila("GET estimado",        c("Gasto Energético Total") ? c("Gasto Energético Total") + " kcal/día" : ""),
         fila("Proteína rec.",       c("Proteína Recomendada") ? c("Proteína Recomendada") + " g/día" : ""),
@@ -471,7 +477,11 @@ function buildEmail({ nombre, emailPaciente, telefono, fecha, campos, radios, ch
         fila("Frecuencia de comidas",  rp("comidas")),
         fila("Horarios de comida",     schedule.mealsText),
         fila("Hora de entrenamiento",  schedule.trainingTime),
+        fila(horarios["Segunda sesión"] ? "Segunda sesión" : "Otra hora de entreno",
+          esc(horarios["Segunda sesión"] || horarios["Otra hora de entrenamiento"] || "")),
         fila("Franja de entrenamiento", rp("timing")),
+        tagRow("Antes de entrenar prefiere",   ch("Antes de entrenar prefiere"), "#d4a843"),
+        tagRow("Después de entrenar prefiere", ch("Después de entrenar prefiere"), "#d4a843"),
         fila("Pre-entreno probable",   schedule.pre),
         fila("Post-entreno probable",  schedule.post),
         fila("Estilo preparación",     rp("preparacion")),
@@ -632,7 +642,7 @@ function resumenEjecutivo({ nombreH, imc, r, rp, c, escalas }) {
     chip("IMC", imc),
     chip("GET", get ? get + " kcal" : ""),
     chip("Proteína", prote ? prote + " g" : ""),
-    chip("Entreno", dias ? dias + " d/sem" : ""),
+    chip("Entreno", dias === "0" ? "Aún no" : dias ? dias + " d/sem" : ""),
   ].filter(Boolean).join("");
 
   if (!chips) return "";
