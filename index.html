@@ -1151,6 +1151,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
   .training-time-hint { min-height: 0; }
 }
 
+html, body { overscroll-behavior-y: none; }
 /* ═══════════════════════════════════════════════════════════════
    Rediseño premium (nov 2026) — capa final sobre los estilos de arriba
    · Íconos de línea (sin emojis), jerarquía clara y menos ruido.
@@ -2347,39 +2348,9 @@ body { background: radial-gradient(1200px 600px at 50% -200px, rgba(212,168,67,.
     </div>
   </div>
 
-  <!-- BOTÓN GENERAR LISTA DE COMPRAS -->
-  <div class="seccion" style="text-align: center; padding: 20px;">
-    <button class="btn-lista" onclick="generarListaCompras()">
-      <span>🛒</span> Generar Lista de Compras de esta Sección
-    </button>
-    <div class="tip" style="margin-top: 10px; text-align: left;">
-      Al hacer clic, se generará una lista de compras organizada por categorías con todos los alimentos que ha seleccionado. 
-      Puede imprimirla o guardarla en su teléfono.
-    </div>
-  </div>
-
   <div class="tab-footer-nav">
     <button class="tab-nav-btn" onclick="prevTab()">← Anterior</button>
     <button class="tab-nav-btn primary" onclick="nextTab()">Siguiente →</button>
-  </div>
-</div>
-
-<!-- MODAL LISTA DE COMPRAS -->
-<div class="modal-lista" id="modal-lista">
-  <div class="modal-content">
-    <button class="modal-close" onclick="cerrarLista()">×</button>
-    <div class="modal-title">🛒 Lista de Compras IRONQx</div>
-    <div class="modal-subtitle">Basada en sus preferencias alimentarias seleccionadas</div>
-    
-    <div id="lista-contenido">
-      <!-- Se genera dinámicamente -->
-    </div>
-    
-    <div style="margin-top: 24px; text-align: center;">
-      <button class="btn-lista" onclick="imprimirLista()">
-        <span>🖨️</span> Imprimir / Guardar PDF
-      </button>
-    </div>
   </div>
 </div>
 
