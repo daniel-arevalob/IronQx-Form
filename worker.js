@@ -883,7 +883,7 @@ function buildConfirmEmail({ nombre, objetivo, entreno, comidas, fecha }) {
     ])}`, { gold: true, pad: "18px 18px" }), "0 26px 20px")}
     ${rowT(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-left:3px solid ${T.GOLD};padding:4px 0 4px 16px;font-family:${SERIF};font-size:17px;font-style:italic;line-height:1.55;color:${T.INK};">Un plan que sí cumples vale más que uno perfecto que no sostienes. Vamos paso a paso.</td></tr></table>`, "4px 30px 22px")}
     ${rowT(`<div style="font-family:${SANS};font-size:13px;line-height:1.7;color:${T.MUTED};text-align:center;">¿Olvidaste algo o quieres agregar un detalle? <b style="color:${T.SOFT};">Responde a este correo</b> y lo sumo a tu ficha.</div>`, "0 30px 20px")}
-    ${rowT(`<div style="text-align:center;"><div style="font-family:${SANS};font-size:13px;color:${T.MUTED};">Con aprecio,</div>
+    ${rowT(`<div style="text-align:center;"><div style="font-family:${SANS};font-size:13px;color:${T.MUTED};">Saludos,</div>
       <div style="margin-top:6px;font-family:${SERIF};font-size:22px;font-style:italic;color:${T.GOLD_LT};">Dr. Daniel Arévalo</div>
       <div style="margin-top:4px;font-family:${SANS};font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:${T.MUTED};">IRONQx · Clinical &amp; Performance</div></div>`, "4px 30px 6px")}`;
   return docShell({
