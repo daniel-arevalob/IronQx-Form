@@ -4292,7 +4292,7 @@ function restaurarBorrador() {
     ? saved.keys
     : saved.data.length === CLAVES_BORRADOR_V2.length ? CLAVES_BORRADOR_V2 : null;
   if (!claves) return; // ni claves ni estructura conocida: no se inventa nada
-  const indice = new Map(claves.map((k, i) => [_sinEmoji(k), i]));
+  const indice = new Map(claves.map((k, i) => [_sinEmoji(k).replace(/\|\s+/g, '|'), i]));
   // Claves antiguas recortadas a 60 caracteres con emojis dentro: se buscan por prefijo
   const _buscar = k => {
     if (indice.has(k)) return indice.get(k);
