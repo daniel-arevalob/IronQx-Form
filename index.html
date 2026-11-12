@@ -1152,6 +1152,7 @@ textarea.inp { resize: vertical; min-height: 78px; line-height: 1.65; }
 }
 
 html, body { overscroll-behavior-y: none; }
+#tab-nav-wrap { top: var(--pb-h, 38px) !important; }
 /* ═══════════════════════════════════════════════════════════════
    Rediseño premium (nov 2026) — capa final sobre los estilos de arriba
    · Íconos de línea (sin emojis), jerarquía clara y menos ruido.
@@ -3241,7 +3242,7 @@ function renderResumenEnvio() {
     if (falta && !ch.crit) return ""; // opcionales vacíos no se muestran
     return `<div class="resumen-chip${falta ? " miss" : ""}">
       <div class="rc-lbl">${ch.lbl}</div>
-      <div class="rc-val">${falta ? "⚠ Falta" : esc(ch.value)}</div>
+      <div class="rc-val">${falta ? "Falta" : esc(ch.value)}</div>
     </div>`;
   }).join("") + `</div>`;
 }
@@ -3259,7 +3260,7 @@ function validarCampo(input) {
       err.className = "field-error";
       input.insertAdjacentElement("afterend", err);
     }
-    err.textContent = "⚠ " + msg;
+    err.textContent = msg;
   };
   const limpiar = () => { input.classList.remove("invalid"); if (err) err.remove(); };
 
@@ -3281,7 +3282,7 @@ function marcarGrupo(sub, invalido) {
   if (invalido && !msg) {
     msg = document.createElement('div');
     msg.className = 'grupo-error';
-    msg.textContent = '⚠ Elige una opción';
+    msg.textContent = 'Elige una opción';
     // Justo debajo de las opciones, no al final del bloque.
     const opciones = sub.querySelector(':scope > .radio-fila, :scope > .opt-grid, :scope > .escala');
     if (opciones) opciones.insertAdjacentElement('afterend', msg);
@@ -4661,17 +4662,15 @@ document.getElementById('modal-lista')?.addEventListener('click', function(e) {
 ═══════════════════════════════════════════════════════════════ */
 (function () {
   const RE1 = new RegExp(_RE_EMOJI.source, 'u');
+  // Todo el texto visible de la página (no scripts, estilos ni íconos)
   function limpiarEmojis(root) {
-    const sel = '.chk-txt, .rdo, .opt-t, .opt-d, .opt-badge, .sub-sec-titulo, .subsec-titulo, .timing-header, .lbl, .tip, .warning-box, .parte-txt, .esc-lbl, .portada-body p, option, .tab-nav-btn';
-    root.querySelectorAll(sel).forEach(el => {
-      const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-      let n; const nodes = [];
-      while ((n = w.nextNode())) nodes.push(n);
-      nodes.forEach(t => {
-        if (!RE1.test(t.nodeValue)) return;
-        t.nodeValue = t.nodeValue.replace(_RE_EMOJI, '').replace(/^\s+/, t.previousSibling ? ' ' : '');
-      });
+    const w = document.createTreeWalker(root.body || root, NodeFilter.SHOW_TEXT, {
+      acceptNode: n => n.parentElement && n.parentElement.closest('script, style, svg, textarea') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
     });
+    const nodes = []; let n;
+    while ((n = w.nextNode())) if (RE1.test(n.nodeValue)) nodes.push(n);
+    nodes.forEach(t => { t.nodeValue = t.nodeValue.replace(_RE_EMOJI, '').replace(/^\s+/, t.previousSibling ? ' ' : ''); });
+    document.querySelectorAll('option').forEach(o => { if (RE1.test(o.textContent)) o.textContent = _sinEmoji(o.textContent); });
   }
 
   // «Ninguna» excluye al resto del grupo (y marcar otra opción la desmarca)
@@ -4732,7 +4731,10 @@ document.getElementById('modal-lista')?.addEventListener('click', function(e) {
     setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 320); }, tipo === 'error' ? 6000 : 3800);
   };
 
-  const iniciar = () => { limpiarEmojis(document); herramientasAlimentos(); };
+  // Las pestañas se pegan justo bajo la barra superior (su alto cambia con el ancho)
+  const medirBarra = () => { const pb = document.getElementById('progreso-bar'); if (pb) document.documentElement.style.setProperty('--pb-h', pb.offsetHeight + 'px'); };
+  window.addEventListener('resize', medirBarra);
+  const iniciar = () => { limpiarEmojis(document); herramientasAlimentos(); medirBarra(); setTimeout(medirBarra, 600); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
 })();
 </script>
